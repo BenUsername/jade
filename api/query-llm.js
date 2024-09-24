@@ -3,7 +3,26 @@
 const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
-  // ... (previous code)
+  // Ensure the request method is POST
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  // Extract 'brand' from the request body
+  const { brand } = req.body;
+
+  // Check if 'brand' is provided
+  if (!brand) {
+    res.status(400).json({ error: 'Brand name is required' });
+    return;
+  }
+
+  // Check if the OpenAI API key is configured
+  if (!process.env.OPENAI_API_KEY) {
+    res.status(500).json({ error: 'OpenAI API key is not configured.' });
+    return;
+  }
 
   try {
     const prompt = `As of September 2021, provide an analysis of the brand "${brand}" focusing on mention frequency, contextual relevance, sentiment, and associations.`;
