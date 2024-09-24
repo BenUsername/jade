@@ -122,7 +122,7 @@ Output only the JSON object and nothing else.`,
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo-0613',
+        model: 'gpt-3.5-turbo',
         messages: messages,
         functions: functions,
         function_call: { name: 'provide_analysis' },
