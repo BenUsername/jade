@@ -1,0 +1,21 @@
+/* styles.css */
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .container {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  input, button {
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+  
+  #result {
+    margin-top: 1rem;
+  }
+  
