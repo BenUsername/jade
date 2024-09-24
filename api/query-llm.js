@@ -43,6 +43,9 @@ module.exports = async (req, res) => {
     res.status(200).json({ analysis });
   } catch (error) {
     console.error('Error querying OpenAI:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to fetch data from OpenAI' });
+    res.status(500).json({
+      error: 'Failed to fetch data from OpenAI',
+      details: error.response?.data || error.message,
+    });
   }
 };
