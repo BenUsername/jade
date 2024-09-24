@@ -29,11 +29,23 @@ module.exports = authenticate(async (req, res) => {
     const messages = [
       {
         role: 'system',
-        content: 'You are a helpful assistant that provides analyses of brands in JSON format.',
+        content: 'You are a helpful assistant that provides detailed sentiment analyses of brands.',
       },
       {
         role: 'user',
-        content: `As of September 2021, provide an analysis of the brand "${brand}" focusing on mention frequency, contextual relevance, sentiment (provide a score from -1 to 1), and associations. Format the response as a JSON object with keys: "mention_frequency", "contextual_relevance", "sentiment", and "associations".`,
+        content: `As of September 2021, provide a detailed sentiment analysis of the brand "${brand}" focusing on the following aspects:
+
+- Customer Satisfaction
+- Product Quality
+- Customer Service
+- Brand Reputation
+
+For each aspect, provide:
+
+- A sentiment score from -1 (very negative) to 1 (very positive)
+- A brief explanation of the score
+
+Format the response as a JSON object with keys "customer_satisfaction", "product_quality", "customer_service", and "brand_reputation", each containing a "score" and "explanation".`,
       },
     ];
 
@@ -66,9 +78,9 @@ module.exports = authenticate(async (req, res) => {
         return;
       }
 
-      // Save the analysis to the database with user reference
+      // Save the analysis to the database
       await dbConnect();
-      const newAnalysis = new Analysis({ brand, analysis: analysisData, userId });
+      const newAnalysis = new Analysis({ brand, analysis: analysisData, userId: req.userId });
       await newAnalysis.save();
 
       res.status(200).json({ analysis: analysisData });

@@ -91,48 +91,28 @@ document.getElementById('brand-form').addEventListener('submit', async function 
       const analysisData = data.analysis;
 
       // Build HTML content
-      const resultHTML = `
-        <h2>Analysis of "${brand}":</h2>
-        <h3>Mention Frequency</h3>
-        <p>${analysisData.mention_frequency}</p>
-        <h3>Contextual Relevance</h3>
-        <p>${analysisData.contextual_relevance}</p>
-        <h3>Sentiment</h3>
-        <p>${analysisData.sentiment}</p>
-        <h3>Associations</h3>
-        <p>${analysisData.associations}</p>
-      `;
+      let resultHTML = `<h2>Analysis of "${brand}":</h2>`;
+
+      for (const aspect in analysisData) {
+        const aspectData = analysisData[aspect];
+        const aspectTitle = aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+        resultHTML += `
+          <h3>${aspectTitle}</h3>
+          <p><strong>Score:</strong> ${aspectData.score}</p>
+          <p>${aspectData.explanation}</p>
+        `;
+      }
 
       resultDiv.innerHTML = resultHTML;
 
-      // Parse sentiment score
-      const sentimentScore = parseFloat(analysisData.sentiment);
+      // Visualize the sentiment scores
+      const sentimentScores = Object.values(analysisData).map((item) => parseFloat(item.score));
+      const labels = Object.keys(analysisData).map((aspect) =>
+        aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+      );
 
-      // Prepare data for the chart
-      const ctx = document.getElementById('sentimentChart').getContext('2d');
-
-      // Create a chart
-      const sentimentChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: ['Sentiment Score'],
-          datasets: [
-            {
-              label: 'Sentiment',
-              data: [sentimentScore],
-              backgroundColor: sentimentScore >= 0 ? 'green' : 'red',
-            },
-          ],
-        },
-        options: {
-          scales: {
-            y: {
-              min: -1,
-              max: 1,
-            },
-          },
-        },
-      });
+      // Render the chart
+      renderSentimentChart(labels, sentimentScores);
 
       // Fetch and display history
       fetchHistory(brand);
@@ -196,3 +176,39 @@ const displayHistory = (analyses) => {
     historyDiv.innerHTML += analysisHTML;
   });
 };
+
+function renderSentimentChart(labels, data) {
+  const ctx = document.getElementById('sentimentChart').getContext('2d');
+
+  // Destroy existing chart instance if it exists
+  if (window.sentimentChart) {
+    window.sentimentChart.destroy();
+  }
+
+  window.sentimentChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Sentiment Scores',
+          data: data,
+          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+        },
+      ],
+    },
+    options: {
+      scales: {
+        r: {
+          min: -1,
+          max: 1,
+          ticks: {
+            stepSize: 0.5,
+          },
+        },
+      },
+    },
+  });
+}
