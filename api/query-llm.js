@@ -1,5 +1,6 @@
 // api/query-llm.js
-const fetch = require('node-fetch');
+
+const { Configuration, OpenAIApi } = require('openai');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -22,35 +23,26 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const prompt = `As of September 2021, provide an analysis of the brand "${brand}" focusing on mention frequency, contextual relevance, sentiment, and associations.`;
-
-    const response = await fetch('https://api.openai.com/v1/engines/davinci/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        prompt: prompt,
-        max_tokens: 500,
-        temperature: 0.7,
-        n: 1,
-        stop: null,
-      }),
+    const configuration = new Configuration({
+      apiKey: OPENAI_API_KEY,
     });
 
-    const data = await response.json();
+    const openai = new OpenAIApi(configuration);
 
-    if (data.error) {
-      console.error('OpenAI API error:', data.error);
-      res.status(500).json({ error: 'Failed to fetch data from OpenAI' });
-      return;
-    }
+    const prompt = `As of September 2021, provide an analysis of the brand "${brand}" focusing on mention frequency, contextual relevance, sentiment, and associations.`;
 
-    const analysis = data.choices[0].text.trim();
+    const response = await openai.createCompletion({
+      model: 'text-davinci-003',
+      prompt: prompt,
+      max_tokens: 500,
+      temperature: 0.7,
+    });
+
+    const analysis = response.data.choices[0].text.trim();
+
     res.status(200).json({ analysis });
   } catch (error) {
-    console.error('Error querying OpenAI:', error);
+    console.error('Error querying OpenAI:', error.response?.data || error.message);
     res.status(500).json({ error: 'Failed to fetch data from OpenAI' });
   }
 };
