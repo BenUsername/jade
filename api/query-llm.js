@@ -68,6 +68,9 @@ Format the response as a JSON object with keys "customer_satisfaction", "product
     if (response.ok) {
       const assistantMessage = data.choices[0].message.content.trim();
 
+      // Log the assistant's response
+      console.log("Assistant's raw response:", assistantMessage);
+
       // Parse the JSON response
       let analysisData;
       try {
