@@ -1,4 +1,5 @@
-// script.js
+window.sentimentChart = null;
+
 let authToken = null;
 
 // Registration
@@ -70,63 +71,58 @@ document.getElementById('logout-button').addEventListener('click', function () {
 document.getElementById('brand-form').addEventListener('submit', async function (e) {
   e.preventDefault();
 
-  const brand = document.getElementById('brand-input').value.trim();
-  if (!brand) return;
+  const brandInput = document.getElementById('brand-input').value.trim();
+  if (!brandInput) return;
+
+  const brands = brandInput.split(',').map((b) => b.trim()).filter((b) => b);
+
+  if (brands.length === 0) {
+    alert('Please enter at least one brand name.');
+    return;
+  }
 
   const resultDiv = document.getElementById('result');
   resultDiv.innerHTML = 'Analyzing...';
 
   try {
-    const response = await fetch('/api/query-llm', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-      body: JSON.stringify({ brand }),
-    });
+    const analyses = await Promise.all(
+      brands.map(async (brand) => {
+        const response = await fetch('/api/query-llm', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ brand }),
+        });
 
-    const data = await response.json();
-    if (response.ok) {
-      const analysisData = data.analysis;
+        const data = await response.json();
+        if (response.ok) {
+          return { brand, analysis: data.analysis };
+        } else {
+          throw new Error(data.error);
+        }
+      })
+    );
 
-      // Build HTML content
-      let resultHTML = `<h2>Analysis of "${brand}":</h2>`;
-
-      for (const aspect in analysisData) {
-        const aspectData = analysisData[aspect];
-        const aspectTitle = aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-        resultHTML += `
-          <h3>${aspectTitle}</h3>
-          <p><strong>Score:</strong> ${aspectData.score}</p>
-          <p>${aspectData.explanation}</p>
-        `;
-      }
-
-      resultDiv.innerHTML = resultHTML;
-
-      // Visualize the sentiment scores
-      const sentimentScores = Object.values(analysisData).map((item) => parseFloat(item.score));
+    // After fetching analyses, call the appropriate function to render the chart
+    if (brands.length === 1) {
+      // Single brand analysis
+      const analysisData = analyses[0].analysis;
       const labels = Object.keys(analysisData).map((aspect) =>
         aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())
       );
+      const data = Object.values(analysisData).map((item) => parseFloat(item.score));
 
-      // Render the chart
-      renderSentimentChart(labels, sentimentScores);
-
-      // Fetch and display history
-      fetchHistory(brand);
+      renderSentimentChart(labels, data);
     } else {
-      if (response.status === 401) {
-        alert('Session expired. Please log in again.');
-        authToken = null;
-        document.getElementById('registration-form').style.display = 'block';
-        document.getElementById('login-form').style.display = 'block';
-        document.getElementById('brand-analysis').style.display = 'none';
-        document.getElementById('logout-button').style.display = 'none';
-      } else {
-        resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
-      }
+      // Comparative analysis
+      displayComparativeAnalysis(analyses);
+    }
+
+    // Fetch and display history for each brand
+    for (const brand of brands) {
+      fetchHistory(brand);
     }
   } catch (error) {
     console.error('Error:', error);
@@ -180,8 +176,11 @@ const displayHistory = (analyses) => {
 function renderSentimentChart(labels, data) {
   const ctx = document.getElementById('sentimentChart').getContext('2d');
 
+  // Log the current value of window.sentimentChart
+  console.log('window.sentimentChart before destroy:', window.sentimentChart);
+
   // Destroy existing chart instance if it exists
-  if (window.sentimentChart) {
+  if (window.sentimentChart && typeof window.sentimentChart.destroy === 'function') {
     window.sentimentChart.destroy();
   }
 
@@ -198,6 +197,49 @@ function renderSentimentChart(labels, data) {
           pointBackgroundColor: 'rgba(54, 162, 235, 1)',
         },
       ],
+    },
+    options: {
+      scales: {
+        r: {
+          min: -1,
+          max: 1,
+          ticks: {
+            stepSize: 0.5,
+          },
+        },
+      },
+    },
+  });
+}
+
+function displayComparativeAnalysis(analyses) {
+  const labels = Object.keys(analyses[0].analysis).map((aspect) =>
+    aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+  );
+
+  const datasets = analyses.map((item) => ({
+    label: item.brand,
+    data: Object.values(item.analysis).map((aspect) => parseFloat(aspect.score)),
+    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+    borderColor: 'rgba(54, 162, 235, 1)',
+    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+  }));
+
+  const ctx = document.getElementById('sentimentChart').getContext('2d');
+
+  // Log the current value of window.sentimentChart
+  console.log('window.sentimentChart before destroy:', window.sentimentChart);
+
+  // Destroy existing chart instance if it exists
+  if (window.sentimentChart && typeof window.sentimentChart.destroy === 'function') {
+    window.sentimentChart.destroy();
+  }
+
+  window.sentimentChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: labels,
+      datasets: datasets,
     },
     options: {
       scales: {
