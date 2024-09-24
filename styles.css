@@ -39,3 +39,9 @@ body {
     text-align: left;
     margin-top: 2rem;
   }
+
+  /* Style the sentiment chart */
+  #sentimentChart {
+    max-width: 600px;
+    margin: 2rem auto;
+  }

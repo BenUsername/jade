@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
       },
       {
         role: 'user',
-        content: `As of September 2021, provide an analysis of the brand "${brand}" focusing on mention frequency, contextual relevance, sentiment, and associations. Format the response as a JSON object with keys: "mention_frequency", "contextual_relevance", "sentiment", and "associations".`,
+        content: `As of September 2021, provide an analysis of the brand "${brand}" focusing on mention frequency, contextual relevance, sentiment (provide a score from -1 to 1), and associations. Format the response as a JSON object with keys: "mention_frequency", "contextual_relevance", "sentiment", and "associations".`,
       },
     ];
 

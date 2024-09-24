@@ -33,6 +33,35 @@ document.getElementById('brand-form').addEventListener('submit', async function(
         `;
 
         resultDiv.innerHTML = resultHTML;
+
+        // Parse sentiment score
+        const sentimentScore = parseFloat(analysisData.sentiment);
+
+        // Prepare data for the chart
+        const ctx = document.getElementById('sentimentChart').getContext('2d');
+
+        // Create a chart
+        const sentimentChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Sentiment Score'],
+            datasets: [
+              {
+                label: 'Sentiment',
+                data: [sentimentScore],
+                backgroundColor: sentimentScore >= 0 ? 'green' : 'red',
+              },
+            ],
+          },
+          options: {
+            scales: {
+              y: {
+                min: -1,
+                max: 1,
+              },
+            },
+          },
+        });
       } else {
         resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
       }
