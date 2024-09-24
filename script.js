@@ -62,6 +62,9 @@ document.getElementById('brand-form').addEventListener('submit', async function(
             },
           },
         });
+
+        // Fetch and display history
+        fetchHistory(brand);
       } else {
         resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
       }
@@ -70,3 +73,34 @@ document.getElementById('brand-form').addEventListener('submit', async function(
       resultDiv.innerHTML = '<p>An unexpected error occurred.</p>';
     }
   });
+
+const fetchHistory = async (brand) => {
+  try {
+    const response = await fetch(`/api/get-history?brand=${encodeURIComponent(brand)}`);
+    const data = await response.json();
+
+    if (response.ok) {
+      displayHistory(data.analyses);
+    } else {
+      console.error('Error fetching history:', data.error);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
+
+const displayHistory = (analyses) => {
+  const historyDiv = document.getElementById('history');
+  historyDiv.innerHTML = '<h2>Historical Analyses:</h2>';
+  analyses.forEach((item) => {
+    const date = new Date(item.date).toLocaleString();
+    const analysis = item.analysis;
+    const analysisHTML = `
+      <div class="history-item">
+        <h3>${date}</h3>
+        <p>${JSON.stringify(analysis)}</p>
+      </div>
+    `;
+    historyDiv.innerHTML += analysisHTML;
+  });
+};

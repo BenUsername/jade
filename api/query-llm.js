@@ -1,6 +1,8 @@
 // api/query-llm.js
 
 const fetch = require('node-fetch');
+const dbConnect = require('../../lib/dbConnect');
+const Analysis = require('../../models/Analysis');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -60,6 +62,11 @@ module.exports = async (req, res) => {
         res.status(500).json({ error: 'Failed to parse analysis data', details: parseError.message });
         return;
       }
+
+      // Save the analysis to the database
+      await dbConnect();
+      const newAnalysis = new Analysis({ brand, analysis: analysisData });
+      await newAnalysis.save();
 
       res.status(200).json({ analysis: analysisData });
     } else {
