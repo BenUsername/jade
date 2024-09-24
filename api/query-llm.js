@@ -29,7 +29,7 @@ module.exports = authenticate(async (req, res) => {
     const messages = [
       {
         role: 'system',
-        content: 'You are a helpful assistant that provides detailed sentiment analyses of brands.',
+        content: 'You are a helpful assistant that provides detailed sentiment analyses of brands. When responding, output only the JSON data in the exact format requested, without any additional text or explanations.',
       },
       {
         role: 'user',
@@ -45,7 +45,28 @@ For each aspect, provide:
 - A sentiment score from -1 (very negative) to 1 (very positive)
 - A brief explanation of the score
 
-Format the response as a JSON object with keys "customer_satisfaction", "product_quality", "customer_service", and "brand_reputation", each containing a "score" and "explanation".`,
+Format the response as a JSON object with the following structure (use double quotes for all keys and string values):
+
+{
+  "customer_satisfaction": {
+    "score": [number between -1 and 1],
+    "explanation": "[string]"
+  },
+  "product_quality": {
+    "score": [number between -1 and 1],
+    "explanation": "[string]"
+  },
+  "customer_service": {
+    "score": [number between -1 and 1],
+    "explanation": "[string]"
+  },
+  "brand_reputation": {
+    "score": [number between -1 and 1],
+    "explanation": "[string]"
+  }
+}
+
+Output only the JSON object and nothing else.`,
       },
     ];
 
@@ -71,10 +92,15 @@ Format the response as a JSON object with keys "customer_satisfaction", "product
       // Log the assistant's response
       console.log("Assistant's raw response:", assistantMessage);
 
-      // Parse the JSON response
+      // Simplify the JSON parsing logic
+      let jsonString = assistantMessage;
+
+      // If the assistant's response might include code block wrappers, remove them
+      jsonString = jsonString.replace(/```json([\s\S]*?)```/g, '$1').trim();
+
       let analysisData;
       try {
-        analysisData = JSON.parse(assistantMessage);
+        analysisData = JSON.parse(jsonString);
       } catch (parseError) {
         console.error('Error parsing JSON:', parseError);
         res.status(500).json({ error: 'Failed to parse analysis data', details: parseError.message });
