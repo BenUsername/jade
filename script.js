@@ -137,7 +137,16 @@ document.getElementById('brand-form').addEventListener('submit', async function 
       // Fetch and display history
       fetchHistory(brand);
     } else {
-      resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+      if (response.status === 401) {
+        alert('Session expired. Please log in again.');
+        authToken = null;
+        document.getElementById('registration-form').style.display = 'block';
+        document.getElementById('login-form').style.display = 'block';
+        document.getElementById('brand-analysis').style.display = 'none';
+        document.getElementById('logout-button').style.display = 'none';
+      } else {
+        resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+      }
     }
   } catch (error) {
     console.error('Error:', error);
@@ -156,7 +165,16 @@ const fetchHistory = async (brand) => {
     if (response.ok) {
       displayHistory(data.analyses);
     } else {
-      console.error('Error fetching history:', data.error);
+      if (response.status === 401) {
+        alert('Session expired. Please log in again.');
+        authToken = null;
+        document.getElementById('registration-form').style.display = 'block';
+        document.getElementById('login-form').style.display = 'block';
+        document.getElementById('brand-analysis').style.display = 'none';
+        document.getElementById('logout-button').style.display = 'none';
+      } else {
+        console.error('Error fetching history:', data.error);
+      }
     }
   } catch (error) {
     console.error('Error:', error);
