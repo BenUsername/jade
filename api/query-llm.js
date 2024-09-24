@@ -24,11 +24,11 @@ module.exports = async (req, res) => {
     const messages = [
       {
         role: 'system',
-        content: 'You are a helpful assistant that provides analyses of brands.',
+        content: 'You are a helpful assistant that provides analyses of brands in JSON format.',
       },
       {
         role: 'user',
-        content: `As of September 2021, provide an analysis of the brand "${brand}" focusing on mention frequency, contextual relevance, sentiment, and associations.`,
+        content: `As of September 2021, provide an analysis of the brand "${brand}" focusing on mention frequency, contextual relevance, sentiment, and associations. Format the response as a JSON object with keys: "mention_frequency", "contextual_relevance", "sentiment", and "associations".`,
       },
     ];
 
@@ -49,8 +49,19 @@ module.exports = async (req, res) => {
     const data = await response.json();
 
     if (response.ok) {
-      const analysis = data.choices[0].message.content.trim();
-      res.status(200).json({ analysis });
+      const assistantMessage = data.choices[0].message.content.trim();
+
+      // Parse the JSON response
+      let analysisData;
+      try {
+        analysisData = JSON.parse(assistantMessage);
+      } catch (parseError) {
+        console.error('Error parsing JSON:', parseError);
+        res.status(500).json({ error: 'Failed to parse analysis data', details: parseError.message });
+        return;
+      }
+
+      res.status(200).json({ analysis: analysisData });
     } else {
       console.error('OpenAI API error:', data);
       res.status(500).json({ error: 'Failed to fetch data from OpenAI', details: data });

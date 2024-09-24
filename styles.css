@@ -19,3 +19,23 @@ body {
     margin-top: 1rem;
   }
   
+  h2 {
+    margin-top: 1.5rem;
+    font-size: 1.5rem;
+  }
+  
+  h3 {
+    margin-top: 1rem;
+    font-size: 1.25rem;
+  }
+  
+  p {
+    text-align: left;
+    margin-bottom: 1rem;
+  }
+  
+  /* Optional: Style the container */
+  #result {
+    text-align: left;
+    margin-top: 2rem;
+  }

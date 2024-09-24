@@ -17,7 +17,22 @@ document.getElementById('brand-form').addEventListener('submit', async function(
   
       const data = await response.json();
       if (response.ok) {
-        resultDiv.innerHTML = `<h2>Analysis of "${brand}":</h2><p>${data.analysis}</p>`;
+        const analysisData = data.analysis;
+
+        // Build HTML content
+        const resultHTML = `
+          <h2>Analysis of "${brand}":</h2>
+          <h3>Mention Frequency</h3>
+          <p>${analysisData.mention_frequency}</p>
+          <h3>Contextual Relevance</h3>
+          <p>${analysisData.contextual_relevance}</p>
+          <h3>Sentiment</h3>
+          <p>${analysisData.sentiment}</p>
+          <h3>Associations</h3>
+          <p>${analysisData.associations}</p>
+        `;
+
+        resultDiv.innerHTML = resultHTML;
       } else {
         resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
       }
@@ -26,4 +41,3 @@ document.getElementById('brand-form').addEventListener('submit', async function(
       resultDiv.innerHTML = '<p>An unexpected error occurred.</p>';
     }
   });
-  
