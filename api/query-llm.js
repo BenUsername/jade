@@ -70,6 +70,51 @@ Output only the JSON object and nothing else.`,
       },
     ];
 
+    const functions = [
+      {
+        name: 'provide_analysis',
+        description: 'Provides a detailed sentiment analysis of a brand',
+        parameters: {
+          type: 'object',
+          properties: {
+            customer_satisfaction: {
+              type: 'object',
+              properties: {
+                score: { type: 'number', description: 'Sentiment score from -1 to 1' },
+                explanation: { type: 'string', description: 'Explanation of the score' },
+              },
+              required: ['score', 'explanation'],
+            },
+            product_quality: {
+              type: 'object',
+              properties: {
+                score: { type: 'number', description: 'Sentiment score from -1 to 1' },
+                explanation: { type: 'string', description: 'Explanation of the score' },
+              },
+              required: ['score', 'explanation'],
+            },
+            customer_service: {
+              type: 'object',
+              properties: {
+                score: { type: 'number', description: 'Sentiment score from -1 to 1' },
+                explanation: { type: 'string', description: 'Explanation of the score' },
+              },
+              required: ['score', 'explanation'],
+            },
+            brand_reputation: {
+              type: 'object',
+              properties: {
+                score: { type: 'number', description: 'Sentiment score from -1 to 1' },
+                explanation: { type: 'string', description: 'Explanation of the score' },
+              },
+              required: ['score', 'explanation'],
+            },
+          },
+          required: ['customer_satisfaction', 'product_quality', 'customer_service', 'brand_reputation'],
+        },
+      },
+    ];
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -77,8 +122,10 @@ Output only the JSON object and nothing else.`,
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-3.5-turbo-0613',
         messages: messages,
+        functions: functions,
+        function_call: { name: 'provide_analysis' },
         max_tokens: 500,
         temperature: 0,
       }),
@@ -87,24 +134,14 @@ Output only the JSON object and nothing else.`,
     const data = await response.json();
 
     if (response.ok) {
-      const assistantMessage = data.choices[0].message.content.trim();
-
-      // Log the assistant's response
-      console.log("Assistant's raw response:", assistantMessage);
-
-      // Simplify the JSON parsing logic
-      let jsonString = assistantMessage;
-
-      // If the assistant's response might include code block wrappers, remove them
-      jsonString = jsonString.replace(/```json([\s\S]*?)```/g, '$1').trim();
+      const assistantMessage = data.choices[0].message;
 
       let analysisData;
-      try {
-        analysisData = JSON.parse(jsonString);
-      } catch (parseError) {
-        console.error('Error parsing JSON:', parseError);
-        res.status(500).json({ error: 'Failed to parse analysis data', details: parseError.message });
-        return;
+      if (assistantMessage.function_call) {
+        // Parse the arguments as JSON
+        analysisData = JSON.parse(assistantMessage.function_call.arguments);
+      } else {
+        throw new Error('Assistant did not call the function as expected.');
       }
 
       // Save the analysis to the database
