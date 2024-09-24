@@ -1,8 +1,8 @@
 // api/query-llm.js
 
 const fetch = require('node-fetch');
-const dbConnect = require('../../lib/dbConnect');
-const Analysis = require('../../models/Analysis');
+const dbConnect = require('../lib/dbConnect');
+const Analysis = require('../models/Analysis');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
