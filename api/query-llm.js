@@ -80,7 +80,7 @@ Output only the JSON object and nothing else.`,
         model: 'gpt-3.5-turbo',
         messages: messages,
         max_tokens: 500,
-        temperature: 0.7,
+        temperature: 0,
       }),
     });
 
