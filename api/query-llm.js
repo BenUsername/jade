@@ -3,8 +3,9 @@
 const fetch = require('node-fetch');
 const dbConnect = require('../lib/dbConnect');
 const Analysis = require('../models/Analysis');
+const authenticate = require('../middleware/auth');
 
-module.exports = async (req, res) => {
+module.exports = authenticate(async (req, res) => {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -21,6 +22,8 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: 'OpenAI API key is not configured.' });
     return;
   }
+
+  const userId = req.userId;
 
   try {
     const messages = [
@@ -63,9 +66,9 @@ module.exports = async (req, res) => {
         return;
       }
 
-      // Save the analysis to the database
+      // Save the analysis to the database with user reference
       await dbConnect();
-      const newAnalysis = new Analysis({ brand, analysis: analysisData });
+      const newAnalysis = new Analysis({ brand, analysis: analysisData, userId });
       await newAnalysis.save();
 
       res.status(200).json({ analysis: analysisData });
@@ -77,4 +80,4 @@ module.exports = async (req, res) => {
     console.error('Error querying OpenAI:', error.message);
     res.status(500).json({ error: 'Failed to fetch data from OpenAI', details: error.message });
   }
-};
+});

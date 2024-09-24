@@ -55,3 +55,26 @@ body {
     border-top: 1px solid #ccc;
     padding-top: 1rem;
   }
+
+  /* Forms */
+  form {
+    margin-bottom: 1rem;
+  }
+
+  input {
+    display: block;
+    width: 100%;
+    max-width: 300px;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  button {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+  }
+
+  /* Hide brand analysis section initially */
+  #brand-analysis {
+    display: none;
+  }
