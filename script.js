@@ -240,7 +240,7 @@ function displayComparativeAnalysis(analyses) {
 
   resultDiv.innerHTML = resultHTML;
 
-  // Prepare data for the chart
+  // Prepare data for the charts
   const labels = Object.keys(analyses[0].analysis).map((aspect) =>
     aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())
   );
@@ -258,8 +258,11 @@ function displayComparativeAnalysis(analyses) {
     };
   });
 
-  // Render the comparative chart
+  // Render the comparative radar chart
   renderComparativeChart(labels, datasets);
+
+  // Render the comparison bar chart
+  renderComparisonBarChart(labels, datasets);
 }
 
 function renderComparativeChart(labels, datasets) {
@@ -279,6 +282,58 @@ function renderComparativeChart(labels, datasets) {
     options: {
       scales: {
         r: {
+          min: -1,
+          max: 1,
+          ticks: {
+            stepSize: 0.5,
+          },
+        },
+      },
+      plugins: {
+        tooltip: {
+          enabled: true,
+        },
+        legend: {
+          display: true,
+          onClick: (e, legendItem, legend) => {
+            const index = legendItem.datasetIndex;
+            const ci = legend.chart;
+            const meta = ci.getDatasetMeta(index);
+
+            // Toggle the visibility
+            meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
+            ci.update();
+          },
+        },
+      },
+    },
+  });
+}
+
+function renderComparisonBarChart(labels, datasets) {
+  const ctx = document.getElementById('comparisonChart').getContext('2d');
+
+  // Prepare data
+  const data = {
+    labels: labels,
+    datasets: datasets.map((dataset) => ({
+      label: dataset.label,
+      data: dataset.data,
+      backgroundColor: dataset.backgroundColor,
+    })),
+  };
+
+  // Destroy existing chart instance if it exists
+  if (window.comparisonChart) {
+    window.comparisonChart.destroy();
+  }
+
+  window.comparisonChart = new Chart(ctx, {
+    type: 'bar',
+    data: data,
+    options: {
+      scales: {
+        y: {
           min: -1,
           max: 1,
           ticks: {

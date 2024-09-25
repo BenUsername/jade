@@ -26,6 +26,21 @@ module.exports = authenticate(async (req, res) => {
   const userId = req.userId;
 
   try {
+    await dbConnect();
+
+    // Check for recent analysis (e.g., within the last 24 hours)
+    const recentAnalysis = await Analysis.findOne({
+      brand,
+      userId: req.userId,
+      date: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    });
+
+    if (recentAnalysis) {
+      res.status(200).json({ analysis: recentAnalysis.analysis });
+      return;
+    }
+
+    // If no recent analysis found, proceed with the API call
     const messages = [
       {
         role: 'system',
@@ -144,8 +159,7 @@ Output only the JSON object and nothing else.`,
         throw new Error('Assistant did not call the function as expected.');
       }
 
-      // Save the analysis to the database
-      await dbConnect();
+      // Save the new analysis to the database
       const newAnalysis = new Analysis({ brand, analysis: analysisData, userId: req.userId });
       await newAnalysis.save();
 
