@@ -1,45 +1,49 @@
-const dbConnect = require('../../lib/dbConnect');
-const User = require('../../models/User');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const User = require('../../models/User');
+const dbConnect = require('../../lib/dbConnect');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { username, password } = req.body;
 
   if (!username || !password) {
-    res.status(400).json({ error: 'Username and password are required' });
-    return;
+    return res.status(400).json({ error: 'Please provide both username and password' });
   }
 
   try {
     await dbConnect();
 
-    // Find user
     const user = await User.findOne({ username });
+
     if (!user) {
-      res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Check if the user's email is verified
+    if (!user.isVerified) {
+      res.status(401).json({ error: 'Email not verified. Please check your email.' });
       return;
     }
 
-    // Check password
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
-      res.status(401).json({ error: 'Invalid credentials' });
-      return;
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Create JWT
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '7d',
-    });
+    const token = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
     res.status(200).json({ token });
   } catch (error) {
-    console.error('Error logging in user:', error);
-    res.status(500).json({ error: 'Failed to log in' });
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'An error occurred during login' });
   }
 };

@@ -17,18 +17,19 @@ document.getElementById('register-form').addEventListener('submit', async functi
   document.getElementById('loading').style.display = 'block';  // Show loading spinner
 
   const username = document.getElementById('register-username').value.trim();
+  const email = document.getElementById('register-email').value.trim();
   const password = document.getElementById('register-password').value.trim();
 
   try {
     const response = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, email, password }),
     });
 
     const data = await response.json();
     if (response.ok) {
-      toastr.success('Registration successful! Please log in.');
+      toastr.success('Registration successful! Please check your email to verify your account.');
     } else {
       toastr.error(`Error: ${data.error}`);
     }
