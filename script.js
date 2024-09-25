@@ -96,44 +96,44 @@ document.getElementById('brand-form').addEventListener('submit', async function 
     return;
   }
 
+  const MAX_BRANDS = 3; // Set a limit to the number of brands
+  if (brands.length > MAX_BRANDS) {
+    alert(`Please enter no more than ${MAX_BRANDS} brands at a time.`);
+    return;
+  }
+
   const resultDiv = document.getElementById('result');
   resultDiv.innerHTML = 'Analyzing...';
 
   try {
-    const analyses = await Promise.all(
-      brands.map(async (brand) => {
-        const response = await fetch('/api/query-llm', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`,
-          },
-          body: JSON.stringify({ brand }),
-        });
+    const analyses = [];
 
-        const data = await response.json();
-        if (response.ok) {
-          return { brand, analysis: data.analysis };
-        } else {
-          throw new Error(data.error);
-        }
-      })
+    // Fetch analyses for all brands concurrently
+    const fetchPromises = brands.map((brand) =>
+      fetch('/api/query-llm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ brand }),
+      }).then((response) => response.json())
     );
 
-    // After fetching analyses, call the appropriate function to render the chart
-    if (brands.length === 1) {
-      // Single brand analysis
-      const analysisData = analyses[0].analysis;
-      const labels = Object.keys(analysisData).map((aspect) =>
-        aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())
-      );
-      const data = Object.values(analysisData).map((item) => parseFloat(item.score));
+    const results = await Promise.all(fetchPromises);
 
-      renderSentimentChart(labels, data);
-    } else {
-      // Comparative analysis
-      displayComparativeAnalysis(analyses);
+    for (let i = 0; i < results.length; i++) {
+      const data = results[i];
+      if (data.analysis) {
+        analyses.push({ brand: brands[i], analysis: data.analysis });
+      } else {
+        alert(`Error analyzing ${brands[i]}: ${data.error}`);
+        return;
+      }
     }
+
+    // Display comparative analysis
+    displayComparativeAnalysis(analyses);
 
     // Fetch and display history for each brand
     for (const brand of brands) {
@@ -188,65 +188,52 @@ const displayHistory = (analyses) => {
   });
 };
 
-function renderSentimentChart(labels, data) {
-  const ctx = document.getElementById('sentimentChart').getContext('2d');
-
-  // Log the current value of window.sentimentChart
-  console.log('window.sentimentChart before destroy:', window.sentimentChart);
-
-  // Destroy existing chart instance if it exists
-  if (window.sentimentChart && typeof window.sentimentChart.destroy === 'function') {
-    window.sentimentChart.destroy();
-  }
-
-  window.sentimentChart = new Chart(ctx, {
-    type: 'radar',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'Sentiment Scores',
-          data: data,
-          backgroundColor: 'rgba(54, 162, 235, 0.2)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          pointBackgroundColor: 'rgba(54, 162, 235, 1)',
-        },
-      ],
-    },
-    options: {
-      scales: {
-        r: {
-          min: -1,
-          max: 1,
-          ticks: {
-            stepSize: 0.5,
-          },
-        },
-      },
-    },
-  });
-}
-
 function displayComparativeAnalysis(analyses) {
+  const resultDiv = document.getElementById('result');
+  // Build HTML content
+  let resultHTML = '<h2>Comparative Analysis:</h2>';
+
+  analyses.forEach(({ brand, analysis }) => {
+    resultHTML += `<h3>Analysis of "${brand}":</h3>`;
+    for (const aspect in analysis) {
+      const aspectData = analysis[aspect];
+      const aspectTitle = aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+      resultHTML += `
+        <p><strong>${aspectTitle} Score:</strong> ${aspectData.score}</p>
+        <p>${aspectData.explanation}</p>
+      `;
+    }
+  });
+
+  resultDiv.innerHTML = resultHTML;
+
+  // Prepare data for the chart
   const labels = Object.keys(analyses[0].analysis).map((aspect) =>
     aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())
   );
 
-  const datasets = analyses.map((item) => ({
-    label: item.brand,
-    data: Object.values(item.analysis).map((aspect) => parseFloat(aspect.score)),
-    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-    borderColor: 'rgba(54, 162, 235, 1)',
-    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
-  }));
+  const datasets = analyses.map(({ brand, analysis }, index) => {
+    const data = Object.values(analysis).map((aspectData) => parseFloat(aspectData.score));
+    const color = getColor(index, '0.2');
+    return {
+      label: brand,
+      data: data,
+      fill: true,
+      backgroundColor: color,
+      borderColor: color.replace('0.2', '1'),
+      pointBackgroundColor: color.replace('0.2', '1'),
+    };
+  });
 
+  // Render the comparative chart
+  renderComparativeChart(labels, datasets);
+}
+
+function renderComparativeChart(labels, datasets) {
   const ctx = document.getElementById('sentimentChart').getContext('2d');
 
-  // Log the current value of window.sentimentChart
-  console.log('window.sentimentChart before destroy:', window.sentimentChart);
-
   // Destroy existing chart instance if it exists
-  if (window.sentimentChart && typeof window.sentimentChart.destroy === 'function') {
+  if (window.sentimentChart) {
     window.sentimentChart.destroy();
   }
 
@@ -266,6 +253,23 @@ function displayComparativeAnalysis(analyses) {
           },
         },
       },
+      plugins: {
+        tooltip: {
+          enabled: true,
+        },
+      },
     },
   });
+}
+
+function getColor(index, opacity) {
+  const colorPalette = [
+    'rgba(255, 99, 132, OPACITY)',
+    'rgba(54, 162, 235, OPACITY)',
+    'rgba(255, 206, 86, OPACITY)',
+    'rgba(75, 192, 192, OPACITY)',
+    'rgba(153, 102, 255, OPACITY)',
+    'rgba(255, 159, 64, OPACITY)',
+  ];
+  return colorPalette[index % colorPalette.length].replace('OPACITY', opacity);
 }
