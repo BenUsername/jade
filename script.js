@@ -2,6 +2,14 @@ window.sentimentChart = null;
 
 let authToken = null;
 
+// Toastr configuration
+toastr.options = {
+  closeButton: true,
+  progressBar: true,
+  positionClass: "toast-top-right",
+  timeOut: 5000
+};
+
 // Registration
 document.getElementById('register-form').addEventListener('submit', async function (e) {
   e.preventDefault();
