@@ -6,13 +6,11 @@
   <link rel="stylesheet" href="styles.css">
   <!-- Chart.js Library -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-  <!-- Include Toastr CSS -->
+  <!-- Toastr CSS -->
   <link
     rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css"
+    href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css"
   />
-  <!-- Include Toastr JS (latest version without jQuery dependency) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -62,7 +60,14 @@
       <div id="history"></div>
     </div>
   </div>
-  <!-- Place scripts at the end of the body -->
+
+  <!-- Include jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <!-- Include Toastr JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+
+  <!-- Your custom script -->
   <script src="script.js"></script>
 </body>
 </html>
