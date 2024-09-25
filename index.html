@@ -6,8 +6,6 @@
   <link rel="stylesheet" href="styles.css">
   <!-- Chart.js Library -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-  <!-- Your custom script -->
-  <script src="script.js"></script>
 </head>
 <body>
   <div class="container">
@@ -18,8 +16,8 @@
     <div id="registration-form">
       <h2>Register</h2>
       <form id="register-form">
-        <input type="text" id="register-username" placeholder="Username" required />
-        <input type="password" id="register-password" placeholder="Password" required />
+        <input type="text" id="register-username" placeholder="Username" required autocomplete="username" />
+        <input type="password" id="register-password" placeholder="Password" required autocomplete="new-password" />
         <button type="submit">Register</button>
       </form>
     </div>
@@ -28,8 +26,8 @@
     <div id="login-form">
       <h2>Login</h2>
       <form id="login-form-element">
-        <input type="text" id="login-username" placeholder="Username" required />
-        <input type="password" id="login-password" placeholder="Password" required />
+        <input type="text" id="login-username" placeholder="Username" required autocomplete="username" />
+        <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password" />
         <button type="submit">Login</button>
       </form>
     </div>
@@ -48,5 +46,7 @@
       <div id="history"></div>
     </div>
   </div>
+  <!-- Place scripts at the end of the body -->
+  <script src="script.js"></script>
 </body>
 </html>

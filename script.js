@@ -29,34 +29,49 @@ document.getElementById('register-form').addEventListener('submit', async functi
 });
 
 // Login
-document.getElementById('login-form-element').addEventListener('submit', async function (e) {
-  e.preventDefault();
+console.log('Attempting to find login form element');
+const loginForm = document.getElementById('login-form-element');
+console.log('Login form element:', loginForm);
 
-  const username = document.getElementById('login-username').value.trim();
-  const password = document.getElementById('login-password').value.trim();
+if (loginForm) {
+  loginForm.addEventListener('submit', async function (e) {
+    console.log('Login form submit event triggered');
+    e.preventDefault();
 
-  try {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value.trim();
 
-    const data = await response.json();
-    if (response.ok) {
-      authToken = data.token;
-      document.getElementById('registration-form').style.display = 'none';
-      document.getElementById('login-form').style.display = 'none';
-      document.getElementById('brand-analysis').style.display = 'block';
-      document.getElementById('logout-button').style.display = 'block';
-    } else {
-      alert(`Error: ${data.error}`);
+    console.log('Username and password retrieved');
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+      console.log('Login response received:', data);
+
+      if (response.ok) {
+        authToken = data.token;
+        document.getElementById('registration-form').style.display = 'none';
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('brand-analysis').style.display = 'block';
+        document.getElementById('logout-button').style.display = 'block';
+        console.log('Login successful, UI updated');
+      } else {
+        alert(`Error: ${data.error}`);
+        console.log('Login error:', data.error);
+      }
+    } catch (error) {
+      console.error('Error during login:', error);
+      alert('An unexpected error occurred during login.');
     }
-  } catch (error) {
-    console.error('Error:', error);
-    alert('An unexpected error occurred during login.');
-  }
-});
+  });
+} else {
+  console.error('Login form element not found');
+}
 
 // Logout
 document.getElementById('logout-button').addEventListener('click', function () {
