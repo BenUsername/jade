@@ -155,7 +155,10 @@ Output only the JSON object and nothing else.`,
       res.status(500).json({ error: 'Failed to fetch data from OpenAI', details: data });
     }
   } catch (error) {
-    console.error('Error querying OpenAI:', error.message);
-    res.status(500).json({ error: 'Failed to fetch data from OpenAI', details: error.message });
+    console.error('Error querying OpenAI:', error.response?.data || error.message);
+    res.status(500).json({
+      error: 'An error occurred while fetching data from OpenAI.',
+      details: error.response?.data?.error?.message || error.message,
+    });
   }
 });

@@ -6,6 +6,11 @@
   <link rel="stylesheet" href="styles.css">
   <!-- Chart.js Library -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <!-- Toastr CSS -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css"
+  />
 </head>
 <body>
   <div class="container">
@@ -46,11 +51,17 @@
         />
         <button type="submit">Analyze Brands</button>
       </form>
+      <!-- Loading Spinner -->
+      <div id="loading" style="display: none;">
+        <img src="spinner.gif" alt="Loading..." />
+      </div>
       <div id="result"></div>
       <canvas id="sentimentChart" width="400" height="400"></canvas>
       <div id="history"></div>
     </div>
   </div>
+  <!-- Include Toastr JS before your script.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
   <!-- Place scripts at the end of the body -->
   <script src="script.js"></script>
 </body>

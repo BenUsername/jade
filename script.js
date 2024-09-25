@@ -6,6 +6,8 @@ let authToken = null;
 document.getElementById('register-form').addEventListener('submit', async function (e) {
   e.preventDefault();
 
+  document.getElementById('loading').style.display = 'block';  // Show loading spinner
+
   const username = document.getElementById('register-username').value.trim();
   const password = document.getElementById('register-password').value.trim();
 
@@ -18,13 +20,15 @@ document.getElementById('register-form').addEventListener('submit', async functi
 
     const data = await response.json();
     if (response.ok) {
-      alert('Registration successful! Please log in.');
+      toastr.success('Registration successful! Please log in.');
     } else {
-      alert(`Error: ${data.error}`);
+      toastr.error(`Error: ${data.error}`);
     }
   } catch (error) {
     console.error('Error:', error);
-    alert('An unexpected error occurred during registration.');
+    toastr.error('An unexpected error occurred during registration.');
+  } finally {
+    document.getElementById('loading').style.display = 'none';  // Hide loading spinner
   }
 });
 
@@ -37,6 +41,8 @@ if (loginForm) {
   loginForm.addEventListener('submit', async function (e) {
     console.log('Login form submit event triggered');
     e.preventDefault();
+
+    document.getElementById('loading').style.display = 'block';  // Show loading spinner
 
     const username = document.getElementById('login-username').value.trim();
     const password = document.getElementById('login-password').value.trim();
@@ -54,6 +60,7 @@ if (loginForm) {
       console.log('Login response received:', data);
 
       if (response.ok) {
+        toastr.success('Login successful!');
         authToken = data.token;
         document.getElementById('registration-form').style.display = 'none';
         document.getElementById('login-form').style.display = 'none';
@@ -61,12 +68,14 @@ if (loginForm) {
         document.getElementById('logout-button').style.display = 'block';
         console.log('Login successful, UI updated');
       } else {
-        alert(`Error: ${data.error}`);
+        toastr.error(`Error: ${data.error}`);
         console.log('Login error:', data.error);
       }
     } catch (error) {
       console.error('Error during login:', error);
-      alert('An unexpected error occurred during login.');
+      toastr.error('An unexpected error occurred during login.');
+    } finally {
+      document.getElementById('loading').style.display = 'none';  // Hide loading spinner
     }
   });
 } else {
@@ -92,18 +101,19 @@ document.getElementById('brand-form').addEventListener('submit', async function 
   const brands = brandInput.split(',').map((b) => b.trim()).filter((b) => b);
 
   if (brands.length === 0) {
-    alert('Please enter at least one brand name.');
+    toastr.error('Please enter at least one brand name.');
     return;
   }
 
   const MAX_BRANDS = 3; // Set a limit to the number of brands
   if (brands.length > MAX_BRANDS) {
-    alert(`Please enter no more than ${MAX_BRANDS} brands at a time.`);
+    toastr.error(`Please enter no more than ${MAX_BRANDS} brands at a time.`);
     return;
   }
 
   const resultDiv = document.getElementById('result');
-  resultDiv.innerHTML = 'Analyzing...';
+  resultDiv.innerHTML = '';  // Clear previous results
+  document.getElementById('loading').style.display = 'block';  // Show loading spinner
 
   try {
     const analyses = [];
@@ -117,7 +127,13 @@ document.getElementById('brand-form').addEventListener('submit', async function 
           'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify({ brand }),
-      }).then((response) => response.json())
+      }).then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(`${data.error}\n${data.details || ''}`);
+        }
+        return data;
+      })
     );
 
     const results = await Promise.all(fetchPromises);
@@ -127,7 +143,7 @@ document.getElementById('brand-form').addEventListener('submit', async function 
       if (data.analysis) {
         analyses.push({ brand: brands[i], analysis: data.analysis });
       } else {
-        alert(`Error analyzing ${brands[i]}: ${data.error}`);
+        toastr.error(`Error analyzing ${brands[i]}: ${data.error}\n${data.details || ''}`);
         return;
       }
     }
@@ -141,12 +157,17 @@ document.getElementById('brand-form').addEventListener('submit', async function 
     }
   } catch (error) {
     console.error('Error:', error);
+    toastr.error(`An unexpected error occurred during analysis: ${error.message}`);
     resultDiv.innerHTML = '<p>An unexpected error occurred.</p>';
+  } finally {
+    document.getElementById('loading').style.display = 'none';  // Hide loading spinner
   }
 });
 
 // Fetch History Function (add Authorization header)
 const fetchHistory = async (brand) => {
+  document.getElementById('loading').style.display = 'block';  // Show loading spinner
+
   try {
     const response = await fetch(`/api/get-history?brand=${encodeURIComponent(brand)}`, {
       headers: { 'Authorization': `Bearer ${authToken}` },
@@ -157,18 +178,22 @@ const fetchHistory = async (brand) => {
       displayHistory(data.analyses);
     } else {
       if (response.status === 401) {
-        alert('Session expired. Please log in again.');
+        toastr.error('Session expired. Please log in again.');
         authToken = null;
         document.getElementById('registration-form').style.display = 'block';
         document.getElementById('login-form').style.display = 'block';
         document.getElementById('brand-analysis').style.display = 'none';
         document.getElementById('logout-button').style.display = 'none';
       } else {
-        console.error('Error fetching history:', data.error);
+        toastr.error(`Error fetching history: ${data.error}\n${data.details || ''}`);
+        console.error('Error fetching history:', data.error, data.details);
       }
     }
   } catch (error) {
     console.error('Error:', error);
+    toastr.error(`An unexpected error occurred while fetching history: ${error.message}`);
+  } finally {
+    document.getElementById('loading').style.display = 'none';  // Hide loading spinner
   }
 };
 
