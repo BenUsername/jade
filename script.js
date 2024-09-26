@@ -4,6 +4,8 @@ if (window.userHistoryChart !== undefined) {
 }
 
 window.sentimentChart = null;
+window.userHistoryChart = null;
+window.comparisonChart = null;
 
 let authToken = null;
 
@@ -14,6 +16,19 @@ toastr.options = {
   positionClass: "toast-top-right",
   timeOut: 5000
 };
+
+// Color palette function
+function getColor(index, opacity) {
+  const colorPalette = [
+    `rgba(255, 99, 132, ${opacity})`,    // Red
+    `rgba(54, 162, 235, ${opacity})`,    // Blue
+    `rgba(255, 206, 86, ${opacity})`,    // Yellow
+    `rgba(75, 192, 192, ${opacity})`,    // Green
+    `rgba(153, 102, 255, ${opacity})`,   // Purple
+    `rgba(255, 159, 64, ${opacity})`,    // Orange
+  ];
+  return colorPalette[index % colorPalette.length];
+}
 
 // Registration
 document.getElementById('register-form').addEventListener('submit', async function (e) {
@@ -167,9 +182,7 @@ document.getElementById('brand-form').addEventListener('submit', async function 
     displayComparativeAnalysis(analyses);
 
     // Fetch and display history for each brand
-    for (const brand of brands) {
-      fetchHistory(brand);
-    }
+    fetchUserHistory();  // Updated function name here, and removed the loop since we're fetching all history at once
   } catch (error) {
     console.error('Error:', error);
     toastr.error(`An unexpected error occurred during analysis: ${error.message}`);
@@ -179,8 +192,8 @@ document.getElementById('brand-form').addEventListener('submit', async function 
   }
 });
 
-// Fetch History Function (add Authorization header)
-const fetchHistory = async () => {
+// Rename fetchHistory to fetchUserHistory
+const fetchUserHistory = async () => {
   document.getElementById('loading').style.display = 'block';  // Show loading spinner
 
   try {
@@ -323,9 +336,15 @@ function renderHistoryChart(chartData) {
 
   const ctx = document.getElementById('historyChart').getContext('2d');
 
+  // Check the value of window.userHistoryChart
+  console.log('window.userHistoryChart before destroy:', window.userHistoryChart);
+
   // Destroy existing chart instance if it exists
   if (window.userHistoryChart instanceof Chart) {
+    console.log('Attempting to destroy existing chart');
     window.userHistoryChart.destroy();
+  } else {
+    console.log('No existing chart to destroy');
   }
 
   window.userHistoryChart = new Chart(ctx, {
@@ -340,6 +359,43 @@ function renderHistoryChart(chartData) {
           ticks: {
             stepSize: 0.5,
           },
+        },
+      },
+    },
+  });
+}
+
+function renderComparisonBarChart(labels, datasets) {
+  const ctx = document.getElementById('comparisonChart').getContext('2d');
+
+  // Destroy existing chart instance if it exists
+  if (window.comparisonChart instanceof Chart) {
+    window.comparisonChart.destroy();
+  }
+
+  window.comparisonChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: datasets
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true,
+          min: -1,
+          max: 1,
+          ticks: {
+            stepSize: 0.5,
+          },
+        },
+      },
+      plugins: {
+        legend: {
+          display: true,
+        },
+        tooltip: {
+          enabled: true,
         },
       },
     },
