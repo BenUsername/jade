@@ -203,6 +203,7 @@ const fetchUserHistory = async () => {
     const data = await response.json();
 
     if (response.ok) {
+      console.log('History data received:', data.history); // Debug log
       displayHistory(data.history);
     } else {
       if (response.status === 401) {
@@ -227,6 +228,11 @@ const fetchUserHistory = async () => {
 
 const displayHistory = (analyses) => {
   const historyDiv = document.getElementById('history');
+  console.log('historyDiv:', historyDiv);
+  if (!historyDiv) {
+    console.error('Element with ID "history" not found in the DOM.');
+    return;
+  }
   historyDiv.innerHTML = '<h2>Historical Analyses:</h2>';
   analyses.forEach((item) => {
     const date = new Date(item.date).toLocaleString();
