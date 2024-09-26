@@ -71,7 +71,18 @@ module.exports = async (req, res) => {
       html: `<p>Please verify your email by clicking on the following link: <a href="${verificationLink}">${verificationLink}</a></p>`,
     };
 
-    await sendgrid.send(msg);
+    try {
+      await sendgrid.send(msg);
+    } catch (error) {
+      console.error('Error sending verification email:', error);
+
+      if (error.response && error.response.body && error.response.body.errors) {
+        console.error('SendGrid Error Details:', error.response.body.errors);
+      }
+
+      res.status(500).json({ error: 'Failed to send verification email' });
+      return;
+    }
 
     res.status(201).json({ message: 'User registered successfully. Please check your email to verify your account.' });
   } catch (error) {
