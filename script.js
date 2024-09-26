@@ -158,7 +158,7 @@ document.getElementById('brand-form').addEventListener('submit', async function 
     const data = await response.json();
     if (response.ok) {
       // Display comparative analysis
-      displayComparativeAnalysis(data.analysis);
+      displayComparativeAnalysis(data.analyses);
       // Fetch and display user history
       fetchUserHistory();
     } else {
@@ -265,27 +265,28 @@ function displayUserHistory(history) {
   }
 }
 
-function displayComparativeAnalysis(analysisData) {
+function displayComparativeAnalysis(analysesData) {
   const resultDiv = document.getElementById('result');
   // Build HTML content
   let resultHTML = '<h2>Comparative Analysis:</h2>';
 
-  resultHTML += `<p><strong>LLM Response:</strong></p>`;
-  resultHTML += `<p>${analysisData.llmResponse}</p>`;
-
-  resultHTML += '<h3>Brand Mentions:</h3>';
-  resultHTML += '<ul>';
-  for (const brand of analysisData.brands) {
-    const count = analysisData.brandMentions[brand] || 0;
-    resultHTML += `<li>${brand}: Mentioned ${count} time(s)</li>`;
-  }
-  resultHTML += '</ul>';
+  analysesData.forEach((analysis) => {
+    resultHTML += `<div class="mb-4">
+      <h3>${analysis.brand} (${analysis.industry})</h3>
+      <p><strong>Analysis:</strong></p>
+      <p>${analysis.analysis}</p>
+    </div>`;
+  });
 
   resultDiv.innerHTML = resultHTML;
 
   // Prepare data for the chart
-  const labels = analysisData.brands;
-  const dataValues = labels.map((brand) => analysisData.brandMentions[brand] || 0);
+  const labels = analysesData.map(analysis => analysis.brand);
+  const dataValues = analysesData.map(analysis => {
+    // Here you might want to implement a sentiment scoring function
+    // For now, we'll use a random score between -1 and 1
+    return Math.random() * 2 - 1;
+  });
 
   // Render the comparison bar chart
   renderBrandMentionsChart(labels, dataValues);
@@ -304,7 +305,7 @@ function renderBrandMentionsChart(labels, dataValues) {
     data: {
       labels: labels,
       datasets: [{
-        label: 'Brand Mentions',
+        label: 'Brand Sentiment',
         data: dataValues,
         backgroundColor: labels.map((_, index) => getColor(index, '0.6')),
         borderColor: labels.map((_, index) => getColor(index, '1')),
@@ -315,7 +316,8 @@ function renderBrandMentionsChart(labels, dataValues) {
       scales: {
         y: {
           beginAtZero: true,
-          precision: 0, // Ensure integer values on y-axis
+          min: -1,
+          max: 1,
         },
       },
       plugins: {
