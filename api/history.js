@@ -11,11 +11,11 @@ module.exports = authenticate(async (req, res) => {
   try {
     await dbConnect();
 
-    const history = await Analysis.find({ userId: req.userId }).sort({ date: -1 });
+    const analyses = await Analysis.find({ userId: req.userId }).sort({ date: -1 });
 
-    res.status(200).json({ history });
+    res.status(200).json({ history: analyses });
   } catch (error) {
-    console.error('Error fetching history:', error);
+    console.error('Error fetching history:', error.message);
     res.status(500).json({ error: 'Failed to fetch history' });
   }
 });

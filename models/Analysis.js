@@ -1,9 +1,13 @@
 const mongoose = require('mongoose');
 
 const AnalysisSchema = new mongoose.Schema({
-  brand: String,
-  analysis: Object,
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  brands: [String],
+  analysis: {
+    brands: [String],
+    brandMentions: Object,
+    llmResponse: String,
+  },
+  userId: String,
   date: { type: Date, default: Date.now },
 });
 
