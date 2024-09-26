@@ -235,24 +235,23 @@ function displayUserHistory(history) {
       console.log('Processing history entry:', entry);
 
       const date = new Date(entry.date).toLocaleString();
-      let brands;
-
-      if (Array.isArray(entry.brands)) {
-        brands = entry.brands.join(', ');
-      } else if (typeof entry.brand === 'string') {
-        brands = entry.brand;
-      } else {
-        brands = 'Unknown Brand';
-        console.warn('Unexpected brand data structure:', entry.brand || entry.brands);
+      let analysisData;
+      
+      try {
+        analysisData = JSON.parse(entry.analysis);
+      } catch (e) {
+        console.error('Error parsing analysis JSON:', e);
+        analysisData = { brand: 'Unknown', industry: 'Unknown', analysis: 'Error parsing analysis data' };
       }
 
       const entryElement = document.createElement('div');
       entryElement.className = 'history-entry';
       entryElement.innerHTML = `
         <h4>${date}</h4>
-        <p><strong>Brands:</strong> ${brands}</p>
+        <p><strong>Brand:</strong> ${analysisData.brand}</p>
+        <p><strong>Industry:</strong> ${analysisData.industry}</p>
         <p><strong>Analysis:</strong></p>
-        <pre>${JSON.stringify(entry.analysis, null, 2)}</pre>
+        <pre>${analysisData.analysis}</pre>
       `;
       historyList.appendChild(entryElement);
     });

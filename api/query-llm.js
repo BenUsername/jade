@@ -95,10 +95,11 @@ module.exports = authenticate(async (req, res) => {
 
         analysisResults.push(analysisData);
 
+        // Stringify the analysis object before saving
         const newAnalysis = new Analysis({
           brand,
           industry,
-          analysis: analysisData,
+          analysis: JSON.stringify(analysisData),
           userId: req.userId,
         });
         await newAnalysis.save();
