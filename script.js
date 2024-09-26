@@ -1,3 +1,8 @@
+// Add this at the beginning of the file
+if (window.userHistoryChart !== undefined) {
+  console.warn('window.userHistoryChart is already defined. This may cause conflicts.');
+}
+
 window.sentimentChart = null;
 
 let authToken = null;
@@ -312,168 +317,24 @@ function renderComparativeChart(labels, datasets) {
   });
 }
 
-function renderComparisonBarChart(labels, datasets) {
-  const ctx = document.getElementById('comparisonChart').getContext('2d');
-
-  // Prepare data
-  const data = {
-    labels: labels,
-    datasets: datasets.map((dataset) => ({
-      label: dataset.label,
-      data: dataset.data,
-      backgroundColor: dataset.backgroundColor,
-    })),
-  };
-
-  // Destroy existing chart instance if it exists
-  if (window.comparisonChart) {
-    window.comparisonChart.destroy();
-  }
-
-  window.comparisonChart = new Chart(ctx, {
-    type: 'bar',
-    data: data,
-    options: {
-      scales: {
-        y: {
-          min: -1,
-          max: 1,
-          ticks: {
-            stepSize: 0.5,
-          },
-        },
-      },
-      plugins: {
-        tooltip: {
-          enabled: true,
-        },
-      },
-    },
-  });
-}
-
-function getColor(index, opacity) {
-  const colorPalette = [
-    'rgba(255, 99, 132, OPACITY)',
-    'rgba(54, 162, 235, OPACITY)',
-    'rgba(255, 206, 86, OPACITY)',
-    'rgba(75, 192, 192, OPACITY)',
-    'rgba(153, 102, 255, OPACITY)',
-    'rgba(255, 159, 64, OPACITY)',
-  ];
-  return colorPalette[index % colorPalette.length].replace('OPACITY', opacity);
-}
-
-function fetchUserHistory() {
-  fetch('/api/history', {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${authToken}`,
-    },
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data.history) {
-        displayUserHistory(data.history);
-      } else {
-        toastr.error('Failed to load history');
-      }
-    })
-    .catch((error) => {
-      console.error('Error fetching history:', error);
-      toastr.error('An error occurred while fetching history');
-    });
-}
-
-function prepareChartData(history) {
-  // Assuming we're focusing on a single brand
-  // Group entries by date
-  const labels = [];
-  const datasetsMap = {};
-
-  history.forEach((entry) => {
-    const dateLabel = new Date(entry.date).toLocaleDateString();
-    labels.push(dateLabel);
-
-    for (const aspect in entry.analysis) {
-      if (!datasetsMap[aspect]) {
-        datasetsMap[aspect] = [];
-      }
-      datasetsMap[aspect].push(parseFloat(entry.analysis[aspect].score));
-    }
-  });
-
-  const datasets = Object.keys(datasetsMap).map((aspect, index) => {
-    const color = getColor(index, '1');
-    return {
-      label: aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
-      data: datasetsMap[aspect],
-      fill: false,
-      borderColor: color,
-      tension: 0.1,
-    };
-  });
-
-  return { labels, datasets };
-}
-
-function displayUserHistory(history) {
-  const historySection = document.getElementById('history-section');
-  const historyList = document.getElementById('history-list');
-  historyList.innerHTML = '';
-
-  if (history.length === 0) {
-    historyList.innerHTML = '<p>You have no search history yet.</p>';
-    return;
-  }
-
-  historySection.style.display = 'block';
-
-  // Prepare and render the chart
-  const chartData = prepareChartData(history);
-  renderHistoryChart(chartData);
-
-  // Display individual history entries
-  history.forEach((entry) => {
-    const date = new Date(entry.date).toLocaleString();
-    const brand = entry.brand;
-    const analysis = entry.analysis;
-
-    let entryHTML = `<div class="card mb-3">
-      <div class="card-header">
-        <strong>${brand}</strong> - <em>${date}</em>
-      </div>
-      <div class="card-body">`;
-
-    for (const aspect in analysis) {
-      const aspectData = analysis[aspect];
-      const aspectTitle = aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-      entryHTML += `
-        <p><strong>${aspectTitle} Score:</strong> ${aspectData.score}</p>
-        <p>${aspectData.explanation}</p>`;
-    }
-
-    entryHTML += `</div></div>`;
-
-    historyList.innerHTML += entryHTML;
-  });
-}
-
 function renderHistoryChart(chartData) {
+  const historySection = document.getElementById('history-section');
+  historySection.style.display = 'block'; // Ensure the section is visible
+
   const ctx = document.getElementById('historyChart').getContext('2d');
 
   // Destroy existing chart instance if it exists
-  if (window.historyChart) {
-    window.historyChart.destroy();
+  if (window.userHistoryChart instanceof Chart) {
+    window.userHistoryChart.destroy();
   }
 
-  window.historyChart = new Chart(ctx, {
+  window.userHistoryChart = new Chart(ctx, {
     type: 'line',
     data: chartData,
     options: {
       scales: {
         y: {
+          beginAtZero: true,
           min: -1,
           max: 1,
           ticks: {
