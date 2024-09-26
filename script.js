@@ -135,60 +135,42 @@ document.getElementById('brand-form').addEventListener('submit', async function 
     return;
   }
 
-  const MAX_BRANDS = 3; // Set a limit to the number of brands
+  const MAX_BRANDS = 5; // Adjust as needed
   if (brands.length > MAX_BRANDS) {
     toastr.error(`Please enter no more than ${MAX_BRANDS} brands at a time.`);
     return;
   }
 
   const resultDiv = document.getElementById('result');
-  resultDiv.innerHTML = '';  // Clear previous results
-  document.getElementById('loading').style.display = 'block';  // Show loading spinner
+  resultDiv.innerHTML = ''; // Clear previous results
+  document.getElementById('loading').style.display = 'block'; // Show loading spinner
 
   try {
-    const analyses = [];
+    const response = await fetch('/api/query-llm', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ brands }),
+    });
 
-    // Fetch analyses for all brands concurrently
-    const fetchPromises = brands.map((brand) =>
-      fetch('/api/query-llm', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({ brand }),
-      }).then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(`${data.error}\n${data.details || ''}`);
-        }
-        return data;
-      })
-    );
-
-    const results = await Promise.all(fetchPromises);
-
-    for (let i = 0; i < results.length; i++) {
-      const data = results[i];
-      if (data.analysis) {
-        analyses.push({ brand: brands[i], analysis: data.analysis });
-      } else {
-        toastr.error(`Error analyzing ${brands[i]}: ${data.error}\n${data.details || ''}`);
-        return;
-      }
+    const data = await response.json();
+    if (response.ok) {
+      // Display comparative analysis
+      displayComparativeAnalysis(data.analysis);
+      // Fetch and display user history
+      fetchUserHistory();
+    } else {
+      toastr.error(`Error: ${data.error}`);
+      console.log('Analysis error:', data.error);
     }
-
-    // Display comparative analysis
-    displayComparativeAnalysis(analyses);
-
-    // Fetch and display history for each brand
-    fetchUserHistory();  // Updated function name here, and removed the loop since we're fetching all history at once
   } catch (error) {
     console.error('Error:', error);
     toastr.error(`An unexpected error occurred during analysis: ${error.message}`);
     resultDiv.innerHTML = '<p>An unexpected error occurred.</p>';
   } finally {
-    document.getElementById('loading').style.display = 'none';  // Hide loading spinner
+    document.getElementById('loading').style.display = 'none'; // Hide loading spinner
   }
 });
 
@@ -283,91 +265,65 @@ function displayUserHistory(history) {
   }
 }
 
-function displayComparativeAnalysis(analyses) {
+function displayComparativeAnalysis(analysisData) {
   const resultDiv = document.getElementById('result');
   // Build HTML content
   let resultHTML = '<h2>Comparative Analysis:</h2>';
 
-  analyses.forEach(({ brand, analysis }) => {
-    resultHTML += `<h3>Analysis of "${brand}":</h3>`;
-    for (const aspect in analysis) {
-      const aspectData = analysis[aspect];
-      const aspectTitle = aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-      resultHTML += `
-        <p><strong>${aspectTitle} Score:</strong> ${aspectData.score}</p>
-        <p><strong>Explanation:</strong> ${aspectData.explanation}</p>
-        ${aspectData.confidence ? `<p><strong>Confidence Level:</strong> ${aspectData.confidence}</p>` : ''}
-        ${aspectData.sources ? `<p><strong>Sources:</strong> ${aspectData.sources}</p>` : ''}
-      `;
-    }
-  });
+  resultHTML += `<p><strong>LLM Response:</strong></p>`;
+  resultHTML += `<p>${analysisData.llmResponse}</p>`;
+
+  resultHTML += '<h3>Brand Mentions:</h3>';
+  resultHTML += '<ul>';
+  for (const brand of analysisData.brands) {
+    const count = analysisData.brandMentions[brand] || 0;
+    resultHTML += `<li>${brand}: Mentioned ${count} time(s)</li>`;
+  }
+  resultHTML += '</ul>';
 
   resultDiv.innerHTML = resultHTML;
 
-  // Prepare data for the charts
-  const labels = Object.keys(analyses[0].analysis).map((aspect) =>
-    aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase())
-  );
-
-  const datasets = analyses.map(({ brand, analysis }, index) => {
-    const data = Object.values(analysis).map((aspectData) => parseFloat(aspectData.score));
-    const color = getColor(index, '0.2');
-    return {
-      label: brand,
-      data: data,
-      fill: true,
-      backgroundColor: color,
-      borderColor: color.replace('0.2', '1'),
-      pointBackgroundColor: color.replace('0.2', '1'),
-    };
-  });
-
-  // Render the comparative radar chart
-  renderComparativeChart(labels, datasets);
+  // Prepare data for the chart
+  const labels = analysisData.brands;
+  const dataValues = labels.map((brand) => analysisData.brandMentions[brand] || 0);
 
   // Render the comparison bar chart
-  renderComparisonBarChart(labels, datasets);
+  renderBrandMentionsChart(labels, dataValues);
 }
 
-function renderComparativeChart(labels, datasets) {
-  const ctx = document.getElementById('sentimentChart').getContext('2d');
+function renderBrandMentionsChart(labels, dataValues) {
+  const ctx = document.getElementById('comparisonChart').getContext('2d');
 
   // Destroy existing chart instance if it exists
-  if (window.sentimentChart) {
-    window.sentimentChart.destroy();
+  if (window.comparisonChart instanceof Chart) {
+    window.comparisonChart.destroy();
   }
 
-  window.sentimentChart = new Chart(ctx, {
-    type: 'radar',
+  window.comparisonChart = new Chart(ctx, {
+    type: 'bar',
     data: {
       labels: labels,
-      datasets: datasets,
+      datasets: [{
+        label: 'Brand Mentions',
+        data: dataValues,
+        backgroundColor: labels.map((_, index) => getColor(index, '0.6')),
+        borderColor: labels.map((_, index) => getColor(index, '1')),
+        borderWidth: 1,
+      }],
     },
     options: {
       scales: {
-        r: {
-          min: -1,
-          max: 1,
-          ticks: {
-            stepSize: 0.5,
-          },
+        y: {
+          beginAtZero: true,
+          precision: 0, // Ensure integer values on y-axis
         },
       },
       plugins: {
+        legend: {
+          display: false,
+        },
         tooltip: {
           enabled: true,
-        },
-        legend: {
-          display: true,
-          onClick: (e, legendItem, legend) => {
-            const index = legendItem.datasetIndex;
-            const ci = legend.chart;
-            const meta = ci.getDatasetMeta(index);
-
-            // Toggle the visibility
-            meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
-            ci.update();
-          },
         },
       },
     },
@@ -414,43 +370,6 @@ function renderHistoryChart(history) {
           ticks: {
             stepSize: 0.5,
           },
-        },
-      },
-    },
-  });
-}
-
-function renderComparisonBarChart(labels, datasets) {
-  const ctx = document.getElementById('comparisonChart').getContext('2d');
-
-  // Destroy existing chart instance if it exists
-  if (window.comparisonChart instanceof Chart) {
-    window.comparisonChart.destroy();
-  }
-
-  window.comparisonChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: datasets
-    },
-    options: {
-      scales: {
-        y: {
-          beginAtZero: true,
-          min: -1,
-          max: 1,
-          ticks: {
-            stepSize: 0.5,
-          },
-        },
-      },
-      plugins: {
-        legend: {
-          display: true,
-        },
-        tooltip: {
-          enabled: true,
         },
       },
     },
