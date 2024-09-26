@@ -5,6 +5,9 @@ const sendgrid = require('@sendgrid/mail');
 const crypto = require('crypto');
 const validator = require('validator');
 
+// Temporarily add this line to check the API key
+console.log('SendGrid API Key:', process.env.SENDGRID_API_KEY);
+
 sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
 
 module.exports = async (req, res) => {
