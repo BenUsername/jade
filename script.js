@@ -202,9 +202,16 @@ const fetchUserHistory = async () => {
     });
     const data = await response.json();
 
+    console.log('Raw response from /api/history:', data);
+
     if (response.ok) {
-      console.log('History data received:', data.history);
-      displayUserHistory(data.history); // Call the new function
+      if (Array.isArray(data.history)) {
+        console.log('History data received:', data.history);
+        displayUserHistory(data.history);
+      } else {
+        console.error('Unexpected history data structure:', data);
+        toastr.error('Received unexpected data structure from server.');
+      }
     } else {
       if (response.status === 401) {
         toastr.error('Session expired. Please log in again.');
@@ -229,6 +236,8 @@ const fetchUserHistory = async () => {
 // New displayUserHistory function
 function displayUserHistory(history) {
   try {
+    console.log('Received history data:', history);
+
     const historySection = document.getElementById('history-section');
     const historyList = document.getElementById('history-list');
     historyList.innerHTML = ''; // Clear previous history
@@ -241,8 +250,20 @@ function displayUserHistory(history) {
     historySection.style.display = 'block'; // Ensure the section is visible
 
     history.forEach((entry) => {
+      console.log('Processing history entry:', entry);
+
       const date = new Date(entry.date).toLocaleString();
-      const brands = entry.brands.join(', ');
+      let brands;
+
+      if (Array.isArray(entry.brands)) {
+        brands = entry.brands.join(', ');
+      } else if (typeof entry.brand === 'string') {
+        brands = entry.brand;
+      } else {
+        brands = 'Unknown Brand';
+        console.warn('Unexpected brand data structure:', entry.brand || entry.brands);
+      }
+
       const entryElement = document.createElement('div');
       entryElement.className = 'history-entry';
       entryElement.innerHTML = `
@@ -274,7 +295,9 @@ function displayComparativeAnalysis(analyses) {
       const aspectTitle = aspect.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
       resultHTML += `
         <p><strong>${aspectTitle} Score:</strong> ${aspectData.score}</p>
-        <p>${aspectData.explanation}</p>
+        <p><strong>Explanation:</strong> ${aspectData.explanation}</p>
+        ${aspectData.confidence ? `<p><strong>Confidence Level:</strong> ${aspectData.confidence}</p>` : ''}
+        ${aspectData.sources ? `<p><strong>Sources:</strong> ${aspectData.sources}</p>` : ''}
       `;
     }
   });
@@ -371,12 +394,12 @@ function renderHistoryChart(history) {
   });
 
   // Destroy existing chart if it exists
-  if (window.historyChart) {
-    window.historyChart.destroy();
+  if (window.userHistoryChart) {
+    window.userHistoryChart.destroy();
   }
 
   // Create new chart
-  window.historyChart = new Chart(ctx, {
+  window.userHistoryChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,

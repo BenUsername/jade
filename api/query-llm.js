@@ -44,7 +44,7 @@ module.exports = authenticate(async (req, res) => {
     const messages = [
       {
         role: 'system',
-        content: 'You are a helpful assistant that provides detailed sentiment analyses of brands. When responding, output only the JSON data in the exact format requested, without any additional text or explanations.',
+        content: 'You are a critical and analytical assistant that provides detailed and unbiased sentiment analyses of brands based on your knowledge cutoff. If you are unsure about certain aspects, express uncertainty. When responding, output only the JSON data in the exact format requested, without any additional text or explanations.',
       },
       {
         role: 'user',
@@ -59,6 +59,8 @@ For each aspect, provide:
 
 - A sentiment score from -1 (very negative) to 1 (very positive)
 - A brief explanation of the score
+- Your confidence level in this assessment (high, medium, low)
+- Mention any known events or facts that influence your assessment
 
 Format the response as a JSON object with the following structure (use double quotes for all keys and string values):
 
