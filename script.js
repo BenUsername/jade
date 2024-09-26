@@ -29,7 +29,7 @@ document.getElementById('register-form').addEventListener('submit', async functi
 
     const data = await response.json();
     if (response.ok) {
-      toastr.success('Registration successful! Please check your email to verify your account.');
+      toastr.success('Registration successful! You can now log in.');
     } else {
       toastr.error(`Error: ${data.error}`);
     }

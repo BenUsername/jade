@@ -23,12 +23,6 @@ module.exports = async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Check if the user's email is verified
-    if (!user.isVerified) {
-      res.status(401).json({ error: 'Email not verified. Please check your email.' });
-      return;
-    }
-
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
