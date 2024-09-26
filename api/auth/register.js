@@ -65,7 +65,7 @@ module.exports = async (req, res) => {
     const verificationLink = `https://your-app-url.com/verify-email?token=${verificationToken}`;
     const msg = {
       to: user.email,
-      from: 'no-reply@your-app.com',
+      from: 'ben@coworkintel.com', // Updated to use the verified sender email
       subject: 'Verify your email address',
       text: `Please verify your email by clicking on the following link: ${verificationLink}`,
       html: `<p>Please verify your email by clicking on the following link: <a href="${verificationLink}">${verificationLink}</a></p>`,
