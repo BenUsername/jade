@@ -203,8 +203,8 @@ const fetchUserHistory = async () => {
     const data = await response.json();
 
     if (response.ok) {
-      console.log('History data received:', data.history); // Debug log
-      displayHistory(data.history);
+      console.log('History data received:', data.history);
+      displayUserHistory(data.history); // Call the new function
     } else {
       if (response.status === 401) {
         toastr.error('Session expired. Please log in again.');
@@ -226,26 +226,41 @@ const fetchUserHistory = async () => {
   }
 };
 
-const displayHistory = (analyses) => {
-  const historyDiv = document.getElementById('history');
-  console.log('historyDiv:', historyDiv);
-  if (!historyDiv) {
-    console.error('Element with ID "history" not found in the DOM.');
-    return;
+// New displayUserHistory function
+function displayUserHistory(history) {
+  try {
+    const historySection = document.getElementById('history-section');
+    const historyList = document.getElementById('history-list');
+    historyList.innerHTML = ''; // Clear previous history
+
+    if (!history || history.length === 0) {
+      historyList.innerHTML = '<p>No history available.</p>';
+      return;
+    }
+
+    historySection.style.display = 'block'; // Ensure the section is visible
+
+    history.forEach((entry) => {
+      const date = new Date(entry.date).toLocaleString();
+      const brands = entry.brands.join(', ');
+      const entryElement = document.createElement('div');
+      entryElement.className = 'history-entry';
+      entryElement.innerHTML = `
+        <h4>${date}</h4>
+        <p><strong>Brands:</strong> ${brands}</p>
+        <p><strong>Analysis:</strong></p>
+        <pre>${JSON.stringify(entry.analysis, null, 2)}</pre>
+      `;
+      historyList.appendChild(entryElement);
+    });
+
+    // Render the history chart
+    renderHistoryChart(history);
+  } catch (error) {
+    console.error('Error displaying history:', error);
+    toastr.error('An error occurred while displaying history.');
   }
-  historyDiv.innerHTML = '<h2>Historical Analyses:</h2>';
-  analyses.forEach((item) => {
-    const date = new Date(item.date).toLocaleString();
-    const analysis = item.analysis;
-    const analysisHTML = `
-      <div class="history-item">
-        <h3>${date}</h3>
-        <p>${JSON.stringify(analysis)}</p>
-      </div>
-    `;
-    historyDiv.innerHTML += analysisHTML;
-  });
-};
+}
 
 function displayComparativeAnalysis(analyses) {
   const resultDiv = document.getElementById('result');
@@ -336,26 +351,37 @@ function renderComparativeChart(labels, datasets) {
   });
 }
 
-function renderHistoryChart(chartData) {
-  const historySection = document.getElementById('history-section');
-  historySection.style.display = 'block'; // Ensure the section is visible
-
+function renderHistoryChart(history) {
   const ctx = document.getElementById('historyChart').getContext('2d');
 
-  // Check the value of window.userHistoryChart
-  console.log('window.userHistoryChart before destroy:', window.userHistoryChart);
+  // Prepare data for the chart
+  const labels = history.map((entry) => new Date(entry.date).toLocaleDateString());
+  const datasets = []; // Build datasets based on the analyses
 
-  // Destroy existing chart instance if it exists
-  if (window.userHistoryChart instanceof Chart) {
-    console.log('Attempting to destroy existing chart');
-    window.userHistoryChart.destroy();
-  } else {
-    console.log('No existing chart to destroy');
+  // Assuming each entry contains scores for various aspects
+  const aspects = Object.keys(history[0].analysis);
+  aspects.forEach((aspect, index) => {
+    const data = history.map((entry) => entry.analysis[aspect].score);
+    datasets.push({
+      label: aspect.replace('_', ' ').toUpperCase(),
+      data: data,
+      borderColor: getColor(index, '1'),
+      fill: false,
+    });
+  });
+
+  // Destroy existing chart if it exists
+  if (window.historyChart) {
+    window.historyChart.destroy();
   }
 
-  window.userHistoryChart = new Chart(ctx, {
+  // Create new chart
+  window.historyChart = new Chart(ctx, {
     type: 'line',
-    data: chartData,
+    data: {
+      labels: labels,
+      datasets: datasets,
+    },
     options: {
       scales: {
         y: {
