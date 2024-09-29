@@ -1,5 +1,5 @@
 import { Configuration, OpenAIApi } from 'openai';
-import { getSession } from 'next-auth/react';
+import { getSession } from 'next-auth';
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
