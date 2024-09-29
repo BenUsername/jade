@@ -165,11 +165,15 @@ module.exports = authenticate(async (req, res) => {
 
     // Bulk insert new rankings
     if (rankingsToSave.length > 0) {
-      await IndustryRanking.insertMany(rankingsToSave);
+      await IndustryRanking.insertMany(rankingsToSave.map(ranking => ({
+        ...ranking,
+        type: 'ranking'
+      })));
     }
 
     // Bulk insert new analyses
     await Analysis.insertMany(analysisResults.map(data => ({
+      type: 'analysis',
       brand: data.brand,
       industry: data.industry,
       analysis: JSON.stringify(data),

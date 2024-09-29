@@ -175,94 +175,108 @@ document.getElementById('brand-form').addEventListener('submit', async function 
 });
 
 // Rename fetchHistory to fetchUserHistory
-const fetchUserHistory = async () => {
-  document.getElementById('loading').style.display = 'block';  // Show loading spinner
-
+async function fetchUserHistory() {
   try {
     const response = await fetch('/api/history', {
-      headers: { 'Authorization': `Bearer ${authToken}` },
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`, // Assuming token is stored in localStorage
+        'Content-Type': 'application/json',
+      },
     });
-    const data = await response.json();
 
-    console.log('Raw response from /api/history:', data);
-
-    if (response.ok) {
-      if (Array.isArray(data.history)) {
-        console.log('History data received:', data.history);
-        displayUserHistory(data.history);
-      } else {
-        console.error('Unexpected history data structure:', data);
-        toastr.error('Received unexpected data structure from server.');
-      }
-    } else {
-      if (response.status === 401) {
-        toastr.error('Session expired. Please log in again.');
-        authToken = null;
-        document.getElementById('registration-form').style.display = 'block';
-        document.getElementById('login-form').style.display = 'block';
-        document.getElementById('brand-analysis').style.display = 'none';
-        document.getElementById('logout-button').style.display = 'none';
-      } else {
-        toastr.error(`Error fetching history: ${data.error}`);
-        console.error('Error fetching history:', data.error);
-      }
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const data = await response.json();
+    console.log('History data received:', data.history);
+
+    displayUserHistory(data.history);
   } catch (error) {
-    console.error('Error:', error);
-    toastr.error(`An unexpected error occurred while fetching history: ${error.message}`);
-  } finally {
-    document.getElementById('loading').style.display = 'none';  // Hide loading spinner
+    console.error('Error fetching history:', error);
+    displayError('Failed to fetch history. Please try again later.');
   }
-};
+}
 
 // New displayUserHistory function
 function displayUserHistory(history) {
-  try {
-    console.log('Received history data:', history);
+  const historyContainer = document.getElementById('history-container');
+  historyContainer.innerHTML = ''; // Clear existing content
 
-    const historySection = document.getElementById('history-section');
-    const historyList = document.getElementById('history-list');
-    historyList.innerHTML = ''; // Clear previous history
+  if (history.length === 0) {
+    historyContainer.innerHTML = '<p>No history available.</p>';
+    return;
+  }
 
-    if (!history || history.length === 0) {
-      historyList.innerHTML = '<p>No history available.</p>';
-      return;
-    }
+  history.forEach(entry => {
+    console.log('Processing history entry:', entry);
 
-    historySection.style.display = 'block'; // Ensure the section is visible
-
-    history.forEach((entry) => {
-      console.log('Processing history entry:', entry);
-
-      const date = new Date(entry.date).toLocaleString();
-      let analysisData;
-      
+    if (entry.type === 'analysis') {
       try {
-        analysisData = JSON.parse(entry.analysis);
-      } catch (e) {
-        console.error('Error parsing analysis JSON:', e);
-        analysisData = { brand: 'Unknown', industry: 'Unknown', analysis: 'Error parsing analysis data' };
+        const analysisData = JSON.parse(entry.analysis);
+        displayAnalysisEntry(analysisData, historyContainer);
+      } catch (error) {
+        console.error('Error parsing analysis JSON:', error);
+        displayError('Error displaying analysis entry.', historyContainer);
       }
+    } else if (entry.type === 'ranking') {
+      displayRankingEntry(entry.rankings, entry.industry, historyContainer);
+    } else {
+      console.warn('Unknown history entry type:', entry);
+      displayError('Unknown entry type.', historyContainer);
+    }
+  });
+}
 
-      const entryElement = document.createElement('div');
-      entryElement.className = 'history-entry';
-      entryElement.innerHTML = `
-        <h4>${date}</h4>
-        <p><strong>Brand:</strong> ${analysisData.brand}</p>
-        <p><strong>Industry:</strong> ${analysisData.industry}</p>
-        <p><strong>Analysis:</strong></p>
-        <pre>${analysisData.analysis}</pre>
-      `;
-      historyList.appendChild(entryElement);
+function displayAnalysisEntry(analysisData, container) {
+  const analysisElement = document.createElement('div');
+  analysisElement.classList.add('analysis-entry');
+
+  analysisElement.innerHTML = `
+    <h3>Analysis for ${analysisData.brand}</h3>
+    <p><strong>Industry:</strong> ${analysisData.industry}</p>
+    <p><strong>Analysis:</strong> ${analysisData.analysis}</p>
+    <hr/>
+  `;
+
+  container.appendChild(analysisElement);
+}
+
+function displayRankingEntry(rankings, industry, container) {
+  const rankingElement = document.createElement('div');
+  rankingElement.classList.add('ranking-entry');
+
+  if (!rankings || rankings.length === 0) {
+    rankingElement.innerHTML = `<p>No ranking data available for ${industry}.</p>`;
+  } else {
+    const rankingList = document.createElement('ul');
+
+    rankings.forEach(brand => {
+      const listItem = document.createElement('li');
+      listItem.textContent = `${brand.rank}. ${brand.brand}`;
+      rankingList.appendChild(listItem);
     });
 
-    // Render the history chart
-    renderHistoryChart(history);
-  } catch (error) {
-    console.error('Error displaying history:', error);
-    toastr.error('An error occurred while displaying history.');
+    rankingElement.innerHTML = `<h3>${industry} Industry Rankings</h3>`;
+    rankingElement.appendChild(rankingList);
   }
+
+  rankingElement.innerHTML += '<hr/>';
+  container.appendChild(rankingElement);
 }
+
+function displayError(message, container = document.body) {
+  const errorElement = document.createElement('div');
+  errorElement.classList.add('error-message');
+  errorElement.textContent = message;
+  container.appendChild(errorElement);
+}
+
+// Initialize fetching user history on page load
+document.addEventListener('DOMContentLoaded', () => {
+  fetchUserHistory();
+});
 
 function displayComparativeAnalysis(analysesData) {
   const resultDiv = document.getElementById('result');

@@ -1,11 +1,15 @@
 const mongoose = require('mongoose');
 
 const AnalysisSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    default: 'analysis',
+    required: true
+  },
   brand: String,
   industry: String,
   analysis: String,
   userId: String,
-  date: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.models.Analysis || mongoose.model('Analysis', AnalysisSchema);

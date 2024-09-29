@@ -1,22 +1,26 @@
 const dbConnect = require('../lib/dbConnect');
 const Analysis = require('../models/Analysis');
+const IndustryRanking = require('../models/IndustryRanking');
 const authenticate = require('../middleware/auth');
 
 module.exports = authenticate(async (req, res) => {
-  const { brand } = req.query;
-  const userId = req.userId;
-
-  if (!brand) {
-    res.status(400).json({ error: 'Brand name is required' });
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
   try {
     await dbConnect();
-    const analyses = await Analysis.find({ brand, userId }).sort({ date: -1 }).limit(10);
-    res.status(200).json({ analyses });
+
+    const analyses = await Analysis.find({ userId: req.userId }).sort({ createdAt: -1 });
+    const rankings = await IndustryRanking.find({ userId: req.userId }).sort({ createdAt: -1 });
+
+    // Combine and sort all entries by createdAt
+    const allEntries = [...analyses, ...rankings].sort((a, b) => b.createdAt - a.createdAt);
+
+    res.status(200).json({ history: allEntries });
   } catch (error) {
     console.error('Error fetching history:', error);
-    res.status(500).json({ error: 'Failed to fetch history' });
+    res.status(500).json({ error: 'An error occurred while fetching history' });
   }
 });
