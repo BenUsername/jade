@@ -266,3 +266,129 @@ function isValidDomain(domain) {
   const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i;
   return domainRegex.test(domain);
 }
+
+// Add this function to fetch user history
+async function fetchUserHistory() {
+  try {
+    const response = await fetchWithAuth('/api/get-history');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error fetching user history:', errorText);
+      toastr.error('Failed to fetch user history.');
+      return;
+    }
+    const historyData = await response.json();
+    console.log('User history data received:', historyData);
+    // You can add logic here to display overall user history if needed
+    displaySearchHistory(historyData);
+  } catch (error) {
+    console.error('Error fetching user history:', error);
+    toastr.error('An unexpected error occurred while fetching user history.');
+  }
+}
+
+// Update fetchDomainHistory function
+async function fetchDomainHistory(domain) {
+  try {
+    const response = await fetchWithAuth(`/api/get-history?domain=${encodeURIComponent(domain)}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error fetching domain history:', errorText);
+      toastr.error('Failed to fetch domain history.');
+      return;
+    }
+
+    const historyData = await response.json();
+    console.log('Domain history data received:', historyData);
+    renderDomainHistoryChart(historyData);
+    displaySearchHistory(historyData);
+  } catch (error) {
+    console.error('Error fetching domain history:', error);
+    toastr.error('An unexpected error occurred while fetching domain history.');
+  }
+}
+
+// Add this function to render domain history chart
+function renderDomainHistoryChart(historyData) {
+  const ctx = document.getElementById('historyChart').getContext('2d');
+
+  // Prepare data for the chart
+  const labels = historyData.map(entry => new Date(entry.date).toLocaleDateString());
+  const datasets = [];
+
+  // Assuming each entry contains rankings
+  const competitors = [...new Set(historyData.flatMap(entry => entry.rankings))];
+
+  competitors.forEach((competitor, index) => {
+    const data = historyData.map(entry => {
+      const rank = entry.rankings.indexOf(competitor);
+      return rank !== -1 ? rank + 1 : null; // Rank positions start from 1
+    });
+
+    datasets.push({
+      label: competitor,
+      data: data,
+      borderColor: getColor(index, '1'),
+      fill: false,
+    });
+  });
+
+  // Destroy existing chart if it exists
+  if (window.userHistoryChart) {
+    window.userHistoryChart.destroy();
+  }
+
+  // Create new chart
+  window.userHistoryChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: datasets,
+    },
+    options: {
+      scales: {
+        y: {
+          reverse: true,
+          ticks: {
+            stepSize: 1,
+            precision: 0,
+          },
+          title: {
+            display: true,
+            text: 'Rank Position',
+          },
+        },
+      },
+    },
+  });
+}
+
+// Add this function to display search history
+function displaySearchHistory(historyData) {
+  const historyDiv = document.getElementById('search-history');
+  historyDiv.innerHTML = '<h3>Search History</h3>';
+  
+  const table = document.createElement('table');
+  table.className = 'table';
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Domain</th>
+        <th>Service</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${historyData.map(entry => `
+        <tr>
+          <td>${new Date(entry.date).toLocaleString()}</td>
+          <td>${entry.domain}</td>
+          <td>${entry.service}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+  
+  historyDiv.appendChild(table);
+}
