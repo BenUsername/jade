@@ -1,7 +1,8 @@
 import { Configuration, OpenAIApi } from 'openai';
 import { getSession } from 'next-auth';
 import dbConnect from '../lib/dbConnect';
-import RankingHistory from '../../models/RankingHistory';
+// Update the import path for RankingHistory
+import RankingHistory from '../models/RankingHistory';
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,

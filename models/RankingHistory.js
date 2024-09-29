@@ -7,4 +7,5 @@ const RankingHistorySchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
 });
 
+// Export the model
 export default mongoose.models.RankingHistory || mongoose.model('RankingHistory', RankingHistorySchema);

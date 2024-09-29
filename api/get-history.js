@@ -1,6 +1,7 @@
 import { getSession } from 'next-auth';
 import dbConnect from '../lib/dbConnect';
-import RankingHistory from '../../models/RankingHistory';
+// Update the import path for RankingHistory
+import RankingHistory from '../models/RankingHistory';
 
 export default async function handler(req, res) {
   const session = await getSession({ req });
