@@ -30,6 +30,19 @@ function getColor(index, opacity) {
   return colorPalette[index % colorPalette.length];
 }
 
+// Ensure headers include the token for authentication
+async function fetchWithAuth(url, options = {}) {
+  const token = authToken;
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
 // Registration
 document.getElementById('register-form').addEventListener('submit', async function (e) {
   e.preventDefault();
@@ -129,7 +142,6 @@ document.getElementById('brand-form').addEventListener('submit', async function 
   const brandInput = document.getElementById('brand-input').value.trim();
   if (!brandInput) return;
 
-  // We only need one brand or domain now
   const brand = brandInput;
 
   const resultDiv = document.getElementById('result');
@@ -137,51 +149,26 @@ document.getElementById('brand-form').addEventListener('submit', async function 
   document.getElementById('loading').style.display = 'block'; // Show loading spinner
 
   try {
-    // Step 2: Determine the service provided by the brand
-    const serviceResponse = await fetch('/api/determine-service', {
+    // Call the consolidated API endpoint
+    const response = await fetchWithAuth('/api/query-llm', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
       body: JSON.stringify({ brand }),
     });
 
-    if (!serviceResponse.ok) {
-      const errorText = await serviceResponse.text();
-      toastr.error(`Error determining service: ${errorText}`);
-      console.log('Service error:', errorText);
+    if (!response.ok) {
+      const errorText = await response.text();
+      toastr.error(`Error: ${errorText}`);
+      console.log('API error:', errorText);
       return;
     }
 
-    const serviceData = await serviceResponse.json();
+    const data = await response.json();
 
-    const service = serviceData.service;
-
-    // Step 3: Get the best brands for that service
-    const rankingResponse = await fetch('/api/get-best-brands', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-      body: JSON.stringify({ service }),
-    });
-
-    if (!rankingResponse.ok) {
-      const errorText = await rankingResponse.text();
-      toastr.error(`Error getting rankings: ${errorText}`);
-      console.log('Ranking error:', errorText);
-      return;
-    }
-
-    const rankingData = await rankingResponse.json();
-
-    // Step 4 & 5: Display the rankings and save to database
-    displayRankingTable(rankingData.rankings);
+    // Display the rankings
+    displayRankingTable(data.rankings);
 
     // Fetch and display history
-    fetchUserHistory();
+    await fetchUserHistory();
 
   } catch (error) {
     console.error('Error:', error);
@@ -189,6 +176,51 @@ document.getElementById('brand-form').addEventListener('submit', async function 
     resultDiv.innerHTML = '<p>An unexpected error occurred.</p>';
   } finally {
     document.getElementById('loading').style.display = 'none'; // Hide loading spinner
+  }
+});
+
+// Add event listener for the search form
+document.getElementById('search-form').addEventListener('submit', async function (e) {
+  e.preventDefault();
+
+  const brand = document.getElementById('search-input').value.trim();
+
+  if (!brand) {
+    toastr.error('Please enter a brand or domain.');
+    return;
+  }
+
+  document.getElementById('loading').style.display = 'block';  // Show loading spinner
+
+  try {
+    const response = await fetchWithAuth('/api/determine-service', {
+      method: 'POST',
+      body: JSON.stringify({ brand }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      // Display the rankings in a table
+      const rankingsTable = document.getElementById('rankings-table');
+      rankingsTable.innerHTML = '';
+
+      data.rankings.forEach((rank, index) => {
+        const row = rankingsTable.insertRow();
+        const cellRank = row.insertCell(0);
+        const cellBrand = row.insertCell(1);
+
+        cellRank.textContent = index + 1;
+        cellBrand.textContent = rank;
+      });
+    } else {
+      toastr.error(`Error: ${data.error}`);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    toastr.error('An unexpected error occurred.');
+  } finally {
+    document.getElementById('loading').style.display = 'none';  // Hide loading spinner
   }
 });
 
@@ -211,11 +243,7 @@ function displayRankingTable(rankings) {
 // Modify fetchUserHistory to handle non-JSON responses
 async function fetchUserHistory() {
   try {
-    const response = await fetch('/api/get-history', {
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-      },
-    });
+    const response = await fetchWithAuth('/api/get-history');
 
     if (!response.ok) {
       const errorText = await response.text();
