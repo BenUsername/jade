@@ -139,17 +139,15 @@ document.getElementById('logout-button').addEventListener('click', function () {
 document.getElementById('brand-form').addEventListener('submit', async function (e) {
   e.preventDefault();
 
-  const brandInput = document.getElementById('brand-input').value.trim();
-  if (!brandInput) return;
-
-  const brand = brandInput;
+  const brand = document.getElementById('brand-input').value.trim();
+  if (!brand) return;
 
   const resultDiv = document.getElementById('result');
   resultDiv.innerHTML = ''; // Clear previous results
   document.getElementById('loading').style.display = 'block'; // Show loading spinner
 
   try {
-    // Call the consolidated API endpoint
+    // Call the API endpoint
     const response = await fetchWithAuth('/api/query-llm', {
       method: 'POST',
       body: JSON.stringify({ brand }),
@@ -164,8 +162,8 @@ document.getElementById('brand-form').addEventListener('submit', async function 
 
     const data = await response.json();
 
-    // Display the rankings
-    displayRankingTable(data.rankings);
+    // Display the service and rankings
+    displayServiceAndRankings(data.service, data.rankings);
 
     // Fetch and display history
     await fetchUserHistory();
@@ -178,6 +176,31 @@ document.getElementById('brand-form').addEventListener('submit', async function 
     document.getElementById('loading').style.display = 'none'; // Hide loading spinner
   }
 });
+
+// New function to display service and rankings
+function displayServiceAndRankings(service, rankings) {
+  const resultDiv = document.getElementById('result');
+  resultDiv.innerHTML = `
+    <h2>Service: ${service}</h2>
+    <h3>Top Websites:</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Website</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rankings.map((website, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${website}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
 
 // Add event listener for the search form
 document.getElementById('search-form').addEventListener('submit', async function (e) {

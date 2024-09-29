@@ -25,21 +25,21 @@ export default authenticate(async function handler(req, res) {
     const servicePrompt = `What service does the brand or website "${brand}" provide? Provide a short description in one sentence.`;
 
     const serviceResponse = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: servicePrompt }],
     });
 
     const service = serviceResponse.choices[0].message.content.trim();
 
-    // Step 2: Get the best brands for that service
-    const brandsPrompt = `List the top 5 brands that provide the best "${service}" service. Provide only the brand names in order, starting from the best.`;
+    // Step 2: Get the best websites for that service
+    const websitesPrompt = `List the top 5 websites that provide the best "${service}" service. Provide only the website names or domains in order, starting from the best.`;
 
-    const brandsResponse = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: brandsPrompt }],
+    const websitesResponse = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: websitesPrompt }],
     });
 
-    const rankingsText = brandsResponse.choices[0].message.content.trim();
+    const rankingsText = websitesResponse.choices[0].message.content.trim();
 
     const rankings = rankingsText
       .split('\n')
