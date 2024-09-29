@@ -21,7 +21,7 @@ export default authenticate(async function handler(req, res) {
 
   try {
     // Step 1: Determine the service provided by the brand
-    const servicePrompt = `What service does the brand or website "${brand}" provide? Provide a short description in one sentence.`;
+    const servicePrompt = `What is the primary service or industry sector of the brand or website "${brand}"? Provide a concise, specific answer in 10 words or less.`;
 
     const serviceResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -31,7 +31,7 @@ export default authenticate(async function handler(req, res) {
     const service = serviceResponse.choices[0].message.content.trim();
 
     // Step 2: Get the best websites for that service
-    const websitesPrompt = `List the top 5 websites that provide the best "${service}" service. Provide only the website names or domains in order, starting from the best.`;
+    const websitesPrompt = `List the top 5 most popular and reputable websites or brands that directly compete with "${brand}" in providing ${service}. Provide only the website names or brand names, separated by newlines, starting with the most prominent competitor.`;
 
     const websitesResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -49,13 +49,14 @@ export default authenticate(async function handler(req, res) {
     await dbConnect();
     const rankingHistory = new RankingHistory({
       userId,
+      brand, // Add this line to save the brand
       service,
       rankings,
       date: new Date(),
     });
     await rankingHistory.save();
 
-    res.status(200).json({ service, rankings });
+    res.status(200).json({ brand, service, rankings });
 
   } catch (error) {
     console.error('Error processing request:', error);

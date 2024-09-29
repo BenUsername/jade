@@ -170,10 +170,10 @@ document.getElementById('brand-form').addEventListener('submit', async function 
     const data = await response.json();
 
     // Display the service and rankings
-    displayServiceAndRankings(data.service, data.rankings);
+    displayServiceAndRankings(data.brand, data.service, data.rankings);
 
-    // Fetch and display history
-    await fetchUserHistory();
+    // Fetch and display history for this brand
+    await fetchBrandHistory(data.brand);
 
   } catch (error) {
     console.error('Error:', error);
@@ -184,17 +184,18 @@ document.getElementById('brand-form').addEventListener('submit', async function 
   }
 });
 
-// New function to display service and rankings
-function displayServiceAndRankings(service, rankings) {
+// Modify displayServiceAndRankings function
+function displayServiceAndRankings(brand, service, rankings) {
   const resultDiv = document.getElementById('result');
   resultDiv.innerHTML = `
-    <h2>Service: ${service}</h2>
-    <h3>Top Websites:</h3>
+    <h2>Brand: ${brand}</h2>
+    <h3>Service: ${service}</h3>
+    <h4>Top Competitors:</h4>
     <table class="table">
       <thead>
         <tr>
           <th>Rank</th>
-          <th>Website</th>
+          <th>Website/Brand</th>
         </tr>
       </thead>
       <tbody>
@@ -209,90 +210,30 @@ function displayServiceAndRankings(service, rankings) {
   `;
 }
 
-// Add event listener for the search form
-document.getElementById('search-form').addEventListener('submit', async function (e) {
-  e.preventDefault();
-
-  const brand = document.getElementById('search-input').value.trim();
-
-  if (!brand) {
-    toastr.error('Please enter a brand or domain.');
-    return;
-  }
-
-  document.getElementById('loading').style.display = 'block';  // Show loading spinner
-
+// New function to fetch and display brand history
+async function fetchBrandHistory(brand) {
   try {
-    const response = await fetchWithAuth('/api/determine-service', {
-      method: 'POST',
-      body: JSON.stringify({ brand }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      // Display the rankings in a table
-      const rankingsTable = document.getElementById('rankings-table');
-      rankingsTable.innerHTML = '';
-
-      data.rankings.forEach((rank, index) => {
-        const row = rankingsTable.insertRow();
-        const cellRank = row.insertCell(0);
-        const cellBrand = row.insertCell(1);
-
-        cellRank.textContent = index + 1;
-        cellBrand.textContent = rank;
-      });
-    } else {
-      toastr.error(`Error: ${data.error}`);
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    toastr.error('An unexpected error occurred.');
-  } finally {
-    document.getElementById('loading').style.display = 'none';  // Hide loading spinner
-  }
-});
-
-// Add a new function to display the ranking table
-function displayRankingTable(rankings) {
-  const resultDiv = document.getElementById('result');
-  resultDiv.innerHTML = '<h2>Ranking Results:</h2>';
-  
-  let tableHTML = '<table class="table"><thead><tr><th>Rank</th><th>Brand</th></tr></thead><tbody>';
-  
-  rankings.forEach((brand, index) => {
-    tableHTML += `<tr><td>${index + 1}</td><td>${brand}</td></tr>`;
-  });
-  
-  tableHTML += '</tbody></table>';
-  
-  resultDiv.innerHTML += tableHTML;
-}
-
-// Modify fetchUserHistory to handle non-JSON responses
-async function fetchUserHistory() {
-  try {
-    const response = await fetchWithAuth('/api/get-history');
+    const response = await fetchWithAuth(`/api/get-history?brand=${encodeURIComponent(brand)}`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Error fetching history:', errorText);
-      toastr.error('Failed to fetch history.');
+      console.error('Error fetching brand history:', errorText);
+      toastr.error('Failed to fetch brand history.');
       return;
     }
 
     const historyData = await response.json();
-    console.log('History data received:', historyData);
-    renderHistoryChart(historyData);
+    console.log('Brand history data received:', historyData);
+    renderBrandHistoryChart(historyData);
+    displaySearchHistory(historyData);
   } catch (error) {
-    console.error('Error fetching history:', error);
-    toastr.error('An unexpected error occurred while fetching history.');
+    console.error('Error fetching brand history:', error);
+    toastr.error('An unexpected error occurred while fetching brand history.');
   }
 }
 
-// Update renderHistoryChart to display ranking history
-function renderHistoryChart(historyData) {
+// New function to render brand history chart
+function renderBrandHistoryChart(historyData) {
   const ctx = document.getElementById('historyChart').getContext('2d');
 
   // Prepare data for the chart
@@ -300,16 +241,16 @@ function renderHistoryChart(historyData) {
   const datasets = [];
 
   // Assuming each entry contains rankings
-  const brands = [...new Set(historyData.flatMap(entry => entry.rankings))];
+  const competitors = [...new Set(historyData.flatMap(entry => entry.rankings))];
 
-  brands.forEach((brand, index) => {
+  competitors.forEach((competitor, index) => {
     const data = historyData.map(entry => {
-      const rank = entry.rankings.indexOf(brand);
+      const rank = entry.rankings.indexOf(competitor);
       return rank !== -1 ? rank + 1 : null; // Rank positions start from 1
     });
 
     datasets.push({
-      label: brand,
+      label: competitor,
       data: data,
       borderColor: getColor(index, '1'),
       fill: false,
@@ -346,8 +287,32 @@ function renderHistoryChart(historyData) {
   });
 }
 
-// Remove or comment out functions related to sentiment analysis and comparative charts
-// For example, remove displayComparativeAnalysis, renderBrandMentionsChart, etc.
+// New function to display search history
+function displaySearchHistory(historyData) {
+  const historyDiv = document.getElementById('search-history');
+  historyDiv.innerHTML = '<h3>Search History</h3>';
+  
+  const table = document.createElement('table');
+  table.className = 'table';
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Service</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${historyData.map(entry => `
+        <tr>
+          <td>${new Date(entry.date).toLocaleString()}</td>
+          <td>${entry.service}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+  
+  historyDiv.appendChild(table);
+}
 
 // Initialize fetching user history on page load
 document.addEventListener('DOMContentLoaded', () => {
