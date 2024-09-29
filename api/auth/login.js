@@ -15,6 +15,7 @@ module.exports = async (req, res) => {
   }
 
   try {
+    // Ensure dbConnect is called as a function
     await dbConnect();
 
     const user = await User.findOne({ username });
