@@ -1,26 +1,20 @@
 const dbConnect = require('../lib/dbConnect');
-const Analysis = require('../models/Analysis');
-const IndustryRanking = require('../models/IndustryRanking');
-const authenticate = require('../middleware/auth');
+const { getSession } = require('next-auth/react');
+const RankingHistory = require('../models/RankingHistory');
 
-module.exports = authenticate(async (req, res) => {
-  if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
+module.exports = async (req, res) => {
+  const session = await getSession({ req });
+  if (!session) return res.status(401).json({ error: 'Unauthorized' });
+
+  const userId = session.user.id;
 
   try {
     await dbConnect();
+    const histories = await RankingHistory.find({ userId }).sort({ date: 1 }).lean();
 
-    const analyses = await Analysis.find({ userId: req.userId }).sort({ createdAt: -1 });
-    const rankings = await IndustryRanking.find({ userId: req.userId }).sort({ createdAt: -1 });
-
-    // Combine and sort all entries by createdAt
-    const allEntries = [...analyses, ...rankings].sort((a, b) => b.createdAt - a.createdAt);
-
-    res.status(200).json({ history: allEntries });
+    res.status(200).json(histories);
   } catch (error) {
     console.error('Error fetching history:', error);
-    res.status(500).json({ error: 'An error occurred while fetching history' });
+    res.status(500).json({ error: 'Failed to fetch history' });
   }
-});
+};

@@ -122,217 +122,130 @@ document.getElementById('logout-button').addEventListener('click', function () {
   document.getElementById('logout-button').style.display = 'none';
 });
 
-// Brand Analysis Form Submission
+// Modify the Brand Analysis Form Submission
 document.getElementById('brand-form').addEventListener('submit', async function (e) {
   e.preventDefault();
 
   const brandInput = document.getElementById('brand-input').value.trim();
   if (!brandInput) return;
 
-  const brands = brandInput.split(',').map((b) => b.trim()).filter((b) => b);
-
-  if (brands.length === 0) {
-    toastr.error('Please enter at least one brand name.');
-    return;
-  }
-
-  const MAX_BRANDS = 5; // Adjust as needed
-  if (brands.length > MAX_BRANDS) {
-    toastr.error(`Please enter no more than ${MAX_BRANDS} brands at a time.`);
-    return;
-  }
+  // We only need one brand or domain now
+  const brand = brandInput;
 
   const resultDiv = document.getElementById('result');
   resultDiv.innerHTML = ''; // Clear previous results
   document.getElementById('loading').style.display = 'block'; // Show loading spinner
 
   try {
-    const response = await fetch('/api/query-llm', {
+    // Step 2: Determine the service provided by the brand
+    const serviceResponse = await fetch('/api/determine-service', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`,
       },
-      body: JSON.stringify({ brands }),
+      body: JSON.stringify({ brand }),
     });
 
-    const data = await response.json();
-    if (response.ok) {
-      // Display comparative analysis
-      displayComparativeAnalysis(data.analyses);
-      // Fetch and display user history
-      fetchUserHistory();
-    } else {
-      toastr.error(`Error: ${data.error}`);
-      console.log('Analysis error:', data.error);
+    const serviceData = await serviceResponse.json();
+
+    if (!serviceResponse.ok) {
+      toastr.error(`Error determining service: ${serviceData.error}`);
+      console.log('Service error:', serviceData.error);
+      return;
     }
+
+    const service = serviceData.service;
+
+    // Step 3: Get the best brands for that service
+    const rankingResponse = await fetch('/api/get-best-brands', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ service }),
+    });
+
+    const rankingData = await rankingResponse.json();
+
+    if (!rankingResponse.ok) {
+      toastr.error(`Error getting rankings: ${rankingData.error}`);
+      console.log('Ranking error:', rankingData.error);
+      return;
+    }
+
+    // Step 4 & 5: Display the rankings and save to database
+    displayRankingTable(rankingData.rankings);
+
+    // Fetch and display history
+    fetchUserHistory();
+
   } catch (error) {
     console.error('Error:', error);
-    toastr.error(`An unexpected error occurred during analysis: ${error.message}`);
+    toastr.error(`An unexpected error occurred: ${error.message}`);
     resultDiv.innerHTML = '<p>An unexpected error occurred.</p>';
   } finally {
     document.getElementById('loading').style.display = 'none'; // Hide loading spinner
   }
 });
 
-// Rename fetchHistory to fetchUserHistory
-async function fetchUserHistory() {
-    fetch('/api/get-history')
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Network response was not ok (${response.statusText})`);
-            }
-            return response.json();
-        })
-        .then(historyData => {
-            console.log('History data received:', historyData);
-            displayUserHistory(historyData);
-        })
-        .catch(error => {
-            console.error('Error fetching history:', error);
-        });
-}
-
-// New displayUserHistory function
-function displayUserHistory(historyData) {
-  const historyContainer = document.getElementById('history-container');
-  if (historyContainer) {
-    historyContainer.innerHTML = '';
-    // ... code to populate history ...
-  } else {
-    console.error('Error: History container element not found.');
-  }
-}
-
-function displayAnalysisEntry(analysisData, container) {
-  const analysisElement = document.createElement('div');
-  analysisElement.classList.add('analysis-entry');
-
-  analysisElement.innerHTML = `
-    <h3>Analysis for ${analysisData.brand}</h3>
-    <p><strong>Industry:</strong> ${analysisData.industry}</p>
-    <p><strong>Analysis:</strong> ${analysisData.analysis}</p>
-    <hr/>
-  `;
-
-  container.appendChild(analysisElement);
-}
-
-function displayRankingEntry(rankings, industry, container) {
-  const rankingElement = document.createElement('div');
-  rankingElement.classList.add('ranking-entry');
-
-  if (!rankings || rankings.length === 0) {
-    rankingElement.innerHTML = `<p>No ranking data available for ${industry}.</p>`;
-  } else {
-    const rankingList = document.createElement('ul');
-
-    rankings.forEach(brand => {
-      const listItem = document.createElement('li');
-      listItem.textContent = `${brand.rank}. ${brand.brand}`;
-      rankingList.appendChild(listItem);
-    });
-
-    rankingElement.innerHTML = `<h3>${industry} Industry Rankings</h3>`;
-    rankingElement.appendChild(rankingList);
-  }
-
-  rankingElement.innerHTML += '<hr/>';
-  container.appendChild(rankingElement);
-}
-
-function displayError(message, container = document.body) {
-  const errorElement = document.createElement('div');
-  errorElement.classList.add('error-message');
-  errorElement.textContent = message;
-  container.appendChild(errorElement);
-}
-
-// Initialize fetching user history on page load
-document.addEventListener('DOMContentLoaded', () => {
-  fetchUserHistory();
-});
-
-function displayComparativeAnalysis(analysesData) {
+// Add a new function to display the ranking table
+function displayRankingTable(rankings) {
   const resultDiv = document.getElementById('result');
-  // Build HTML content
-  let resultHTML = '<h2>Comparative Analysis:</h2>';
-
-  analysesData.forEach((analysis) => {
-    resultHTML += `<div class="mb-4">
-      <h3>${analysis.brand} (${analysis.industry})</h3>
-      <p><strong>Analysis:</strong></p>
-      <p>${analysis.analysis}</p>
-    </div>`;
+  resultDiv.innerHTML = '<h2>Ranking Results:</h2>';
+  
+  let tableHTML = '<table class="table"><thead><tr><th>Rank</th><th>Brand</th></tr></thead><tbody>';
+  
+  rankings.forEach((brand, index) => {
+    tableHTML += `<tr><td>${index + 1}</td><td>${brand}</td></tr>`;
   });
-
-  resultDiv.innerHTML = resultHTML;
-
-  // Prepare data for the chart
-  const labels = analysesData.map(analysis => analysis.brand);
-  const dataValues = analysesData.map(analysis => {
-    // Here you might want to implement a sentiment scoring function
-    // For now, we'll use a random score between -1 and 1
-    return Math.random() * 2 - 1;
-  });
-
-  // Render the comparison bar chart
-  renderBrandMentionsChart(labels, dataValues);
+  
+  tableHTML += '</tbody></table>';
+  
+  resultDiv.innerHTML += tableHTML;
 }
 
-function renderBrandMentionsChart(labels, dataValues) {
-  const ctx = document.getElementById('comparisonChart').getContext('2d');
+// Modify fetchUserHistory to display rankings history in a chart
+async function fetchUserHistory() {
+  try {
+    const response = await fetch('/api/get-history', {
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+      },
+    });
+    const historyData = await response.json();
 
-  // Destroy existing chart instance if it exists
-  if (window.comparisonChart instanceof Chart) {
-    window.comparisonChart.destroy();
+    if (response.ok) {
+      console.log('History data received:', historyData);
+      renderHistoryChart(historyData);
+    } else {
+      console.error('Error fetching history:', historyData.error);
+    }
+  } catch (error) {
+    console.error('Error fetching history:', error);
   }
-
-  window.comparisonChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Brand Sentiment',
-        data: dataValues,
-        backgroundColor: labels.map((_, index) => getColor(index, '0.6')),
-        borderColor: labels.map((_, index) => getColor(index, '1')),
-        borderWidth: 1,
-      }],
-    },
-    options: {
-      scales: {
-        y: {
-          beginAtZero: true,
-          min: -1,
-          max: 1,
-        },
-      },
-      plugins: {
-        legend: {
-          display: false,
-        },
-        tooltip: {
-          enabled: true,
-        },
-      },
-    },
-  });
 }
 
-function renderHistoryChart(history) {
+// Update renderHistoryChart to display ranking history
+function renderHistoryChart(historyData) {
   const ctx = document.getElementById('historyChart').getContext('2d');
 
   // Prepare data for the chart
-  const labels = history.map((entry) => new Date(entry.date).toLocaleDateString());
-  const datasets = []; // Build datasets based on the analyses
+  const labels = historyData.map(entry => new Date(entry.date).toLocaleDateString());
+  const datasets = [];
 
-  // Assuming each entry contains scores for various aspects
-  const aspects = Object.keys(history[0].analysis);
-  aspects.forEach((aspect, index) => {
-    const data = history.map((entry) => entry.analysis[aspect].score);
+  // Assuming each entry contains rankings
+  const brands = [...new Set(historyData.flatMap(entry => entry.rankings))];
+
+  brands.forEach((brand, index) => {
+    const data = historyData.map(entry => {
+      const rank = entry.rankings.indexOf(brand);
+      return rank !== -1 ? rank + 1 : null; // Rank positions start from 1
+    });
+
     datasets.push({
-      label: aspect.replace('_', ' ').toUpperCase(),
+      label: brand,
       data: data,
       borderColor: getColor(index, '1'),
       fill: false,
@@ -354,14 +267,25 @@ function renderHistoryChart(history) {
     options: {
       scales: {
         y: {
-          beginAtZero: true,
-          min: -1,
-          max: 1,
+          reverse: true,
           ticks: {
-            stepSize: 0.5,
+            stepSize: 1,
+            precision: 0,
+          },
+          title: {
+            display: true,
+            text: 'Rank Position',
           },
         },
       },
     },
   });
 }
+
+// Remove or comment out functions related to sentiment analysis and comparative charts
+// For example, remove displayComparativeAnalysis, renderBrandMentionsChart, etc.
+
+// Initialize fetching user history on page load
+document.addEventListener('DOMContentLoaded', () => {
+  fetchUserHistory();
+});
