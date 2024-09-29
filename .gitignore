@@ -1,2 +1,27 @@
+# Dependencies
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# dotenv environment variables file
 .env
 
+# Build artifacts
+dist/
+build/
+
+# MacOS files
+.DS_Store
+
+# Others
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
