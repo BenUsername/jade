@@ -9,8 +9,7 @@ const openai = new OpenAI({
 
 export default authenticate(async function handler(req, res) {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
+    return res.status(405).json({ error: 'Method not allowed' });
   }
   
   const { brand } = req.body;

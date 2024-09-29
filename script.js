@@ -32,7 +32,10 @@ function getColor(index, opacity) {
 
 // Ensure headers include the token for authentication
 async function fetchWithAuth(url, options = {}) {
-  const token = authToken;
+  const token = localStorage.getItem('authToken');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
   return fetch(url, {
     ...options,
     headers: {
@@ -154,10 +157,14 @@ document.getElementById('brand-form').addEventListener('submit', async function 
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        // Handle unauthorized error
+        localStorage.removeItem('authToken');
+        window.location.reload(); // Reload the page to show login form
+        return;
+      }
       const errorText = await response.text();
-      toastr.error(`Error: ${errorText}`);
-      console.log('API error:', errorText);
-      return;
+      throw new Error(errorText);
     }
 
     const data = await response.json();
