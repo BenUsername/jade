@@ -1,10 +1,12 @@
-const dbConnect = require('../lib/dbConnect');
-const { getSession } = require('next-auth/react');
-const RankingHistory = require('../models/RankingHistory');
+import { getSession } from 'next-auth';
+import dbConnect from '../../lib/dbConnect';
+import RankingHistory from '../../models/RankingHistory';
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   const session = await getSession({ req });
-  if (!session) return res.status(401).json({ error: 'Unauthorized' });
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   const userId = session.user.id;
 
@@ -17,4 +19,4 @@ module.exports = async (req, res) => {
     console.error('Error fetching history:', error);
     res.status(500).json({ error: 'Failed to fetch history' });
   }
-};
+}

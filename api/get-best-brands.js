@@ -1,7 +1,12 @@
-import OpenAI from 'openai';
+import { Configuration, OpenAIApi } from 'openai';
 import { getSession } from 'next-auth/react';
 import dbConnect from '../../lib/dbConnect';
 import RankingHistory from '../../models/RankingHistory';
+
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
 
 export default async function handler(req, res) {
   const session = await getSession({ req });
@@ -16,19 +21,21 @@ export default async function handler(req, res) {
 
   try {
     // OpenAI API call to get best brands
-    const openai = new OpenAI(process.env.OPENAI_API_KEY);
     const prompt = `List the top 5 brands that provide the best "${service}" service. Provide only the brand names in order, starting from the best.`;
 
-    const completion = await openai.Completion.create({
-      engine: 'text-davinci-003',
+    const completion = await openai.createCompletion({
+      model: 'text-davinci-003',
       prompt: prompt,
       max_tokens: 100,
       temperature: 0.7,
     });
 
-    const rankingsText = completion.choices[0].text.trim();
+    const rankingsText = completion.data.choices[0].text.trim();
     // Parse the rankings into an array
-    const rankings = rankingsText.split('\n').map(item => item.replace(/^\d+\.\s*/, '').trim());
+    const rankings = rankingsText
+      .split('\n')
+      .map(item => item.replace(/^\d+\.\s*/, '').trim())
+      .filter(item => item !== '');
 
     // Save the result to the database
     await dbConnect();

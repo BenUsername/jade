@@ -147,13 +147,14 @@ document.getElementById('brand-form').addEventListener('submit', async function 
       body: JSON.stringify({ brand }),
     });
 
-    const serviceData = await serviceResponse.json();
-
     if (!serviceResponse.ok) {
-      toastr.error(`Error determining service: ${serviceData.error}`);
-      console.log('Service error:', serviceData.error);
+      const errorText = await serviceResponse.text();
+      toastr.error(`Error determining service: ${errorText}`);
+      console.log('Service error:', errorText);
       return;
     }
+
+    const serviceData = await serviceResponse.json();
 
     const service = serviceData.service;
 
@@ -167,13 +168,14 @@ document.getElementById('brand-form').addEventListener('submit', async function 
       body: JSON.stringify({ service }),
     });
 
-    const rankingData = await rankingResponse.json();
-
     if (!rankingResponse.ok) {
-      toastr.error(`Error getting rankings: ${rankingData.error}`);
-      console.log('Ranking error:', rankingData.error);
+      const errorText = await rankingResponse.text();
+      toastr.error(`Error getting rankings: ${errorText}`);
+      console.log('Ranking error:', errorText);
       return;
     }
+
+    const rankingData = await rankingResponse.json();
 
     // Step 4 & 5: Display the rankings and save to database
     displayRankingTable(rankingData.rankings);
@@ -206,7 +208,7 @@ function displayRankingTable(rankings) {
   resultDiv.innerHTML += tableHTML;
 }
 
-// Modify fetchUserHistory to display rankings history in a chart
+// Modify fetchUserHistory to handle non-JSON responses
 async function fetchUserHistory() {
   try {
     const response = await fetch('/api/get-history', {
@@ -214,16 +216,20 @@ async function fetchUserHistory() {
         'Authorization': `Bearer ${authToken}`,
       },
     });
-    const historyData = await response.json();
 
-    if (response.ok) {
-      console.log('History data received:', historyData);
-      renderHistoryChart(historyData);
-    } else {
-      console.error('Error fetching history:', historyData.error);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error fetching history:', errorText);
+      toastr.error('Failed to fetch history.');
+      return;
     }
+
+    const historyData = await response.json();
+    console.log('History data received:', historyData);
+    renderHistoryChart(historyData);
   } catch (error) {
     console.error('Error fetching history:', error);
+    toastr.error('An unexpected error occurred while fetching history.');
   }
 }
 
@@ -287,5 +293,19 @@ function renderHistoryChart(historyData) {
 
 // Initialize fetching user history on page load
 document.addEventListener('DOMContentLoaded', () => {
-  fetchUserHistory();
+  authToken = localStorage.getItem('authToken');
+  if (authToken) {
+    // User is already logged in
+    document.getElementById('registration-form').style.display = 'none';
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('brand-analysis').style.display = 'block';
+    document.getElementById('logout-button').style.display = 'block';
+    fetchUserHistory();
+  } else {
+    // User is not logged in
+    document.getElementById('registration-form').style.display = 'block';
+    document.getElementById('login-form').style.display = 'block';
+    document.getElementById('brand-analysis').style.display = 'none';
+    document.getElementById('logout-button').style.display = 'none';
+  }
 });
