@@ -142,8 +142,8 @@ document.getElementById('logout-button').addEventListener('click', function () {
 document.getElementById('brand-form').addEventListener('submit', async function (e) {
   e.preventDefault();
 
-  const brand = document.getElementById('brand-input').value.trim();
-  if (!brand) return;
+  const domain = document.getElementById('domain-input').value.trim();
+  if (!domain) return;
 
   const resultDiv = document.getElementById('result');
   resultDiv.innerHTML = ''; // Clear previous results
@@ -153,7 +153,7 @@ document.getElementById('brand-form').addEventListener('submit', async function 
     // Call the API endpoint
     const response = await fetchWithAuth('/api/query-llm', {
       method: 'POST',
-      body: JSON.stringify({ brand }),
+      body: JSON.stringify({ domain }),
     });
 
     if (!response.ok) {
@@ -170,10 +170,10 @@ document.getElementById('brand-form').addEventListener('submit', async function 
     const data = await response.json();
 
     // Display the service and rankings
-    displayServiceAndRankings(data.brand, data.service, data.rankings);
+    displayServiceAndRankings(data.domain, data.service, data.rankings);
 
-    // Fetch and display history for this brand
-    await fetchBrandHistory(data.brand);
+    // Fetch and display history for this domain
+    await fetchDomainHistory(data.domain);
 
   } catch (error) {
     console.error('Error:', error);
@@ -184,18 +184,18 @@ document.getElementById('brand-form').addEventListener('submit', async function 
   }
 });
 
-// Modify displayServiceAndRankings function
-function displayServiceAndRankings(brand, service, rankings) {
+// Update other functions to use 'domain' instead of 'brand'
+function displayServiceAndRankings(domain, service, rankings) {
   const resultDiv = document.getElementById('result');
   resultDiv.innerHTML = `
-    <h2>Brand: ${brand}</h2>
+    <h2>Domain: ${domain}</h2>
     <h3>Service: ${service}</h3>
     <h4>Top Competitors:</h4>
     <table class="table">
       <thead>
         <tr>
           <th>Rank</th>
-          <th>Website/Brand</th>
+          <th>Website</th>
         </tr>
       </thead>
       <tbody>
@@ -210,109 +210,29 @@ function displayServiceAndRankings(brand, service, rankings) {
   `;
 }
 
-// New function to fetch and display brand history
-async function fetchBrandHistory(brand) {
+// Update fetchBrandHistory to fetchDomainHistory
+async function fetchDomainHistory(domain) {
   try {
-    const response = await fetchWithAuth(`/api/get-history?brand=${encodeURIComponent(brand)}`);
+    const response = await fetchWithAuth(`/api/get-history?domain=${encodeURIComponent(domain)}`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Error fetching brand history:', errorText);
-      toastr.error('Failed to fetch brand history.');
+      console.error('Error fetching domain history:', errorText);
+      toastr.error('Failed to fetch domain history.');
       return;
     }
 
     const historyData = await response.json();
-    console.log('Brand history data received:', historyData);
-    renderBrandHistoryChart(historyData);
+    console.log('Domain history data received:', historyData);
+    renderDomainHistoryChart(historyData);
     displaySearchHistory(historyData);
   } catch (error) {
-    console.error('Error fetching brand history:', error);
-    toastr.error('An unexpected error occurred while fetching brand history.');
+    console.error('Error fetching domain history:', error);
+    toastr.error('An unexpected error occurred while fetching domain history.');
   }
 }
 
-// New function to render brand history chart
-function renderBrandHistoryChart(historyData) {
-  const ctx = document.getElementById('historyChart').getContext('2d');
-
-  // Prepare data for the chart
-  const labels = historyData.map(entry => new Date(entry.date).toLocaleDateString());
-  const datasets = [];
-
-  // Assuming each entry contains rankings
-  const competitors = [...new Set(historyData.flatMap(entry => entry.rankings))];
-
-  competitors.forEach((competitor, index) => {
-    const data = historyData.map(entry => {
-      const rank = entry.rankings.indexOf(competitor);
-      return rank !== -1 ? rank + 1 : null; // Rank positions start from 1
-    });
-
-    datasets.push({
-      label: competitor,
-      data: data,
-      borderColor: getColor(index, '1'),
-      fill: false,
-    });
-  });
-
-  // Destroy existing chart if it exists
-  if (window.userHistoryChart) {
-    window.userHistoryChart.destroy();
-  }
-
-  // Create new chart
-  window.userHistoryChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: datasets,
-    },
-    options: {
-      scales: {
-        y: {
-          reverse: true,
-          ticks: {
-            stepSize: 1,
-            precision: 0,
-          },
-          title: {
-            display: true,
-            text: 'Rank Position',
-          },
-        },
-      },
-    },
-  });
-}
-
-// New function to display search history
-function displaySearchHistory(historyData) {
-  const historyDiv = document.getElementById('search-history');
-  historyDiv.innerHTML = '<h3>Search History</h3>';
-  
-  const table = document.createElement('table');
-  table.className = 'table';
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Service</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${historyData.map(entry => `
-        <tr>
-          <td>${new Date(entry.date).toLocaleString()}</td>
-          <td>${entry.service}</td>
-        </tr>
-      `).join('')}
-    </tbody>
-  `;
-  
-  historyDiv.appendChild(table);
-}
+// Update other functions accordingly
 
 // Initialize fetching user history on page load
 document.addEventListener('DOMContentLoaded', () => {
