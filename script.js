@@ -91,6 +91,7 @@ if (loginForm) {
       if (response.ok) {
         toastr.success('Login successful!');
         authToken = data.token;
+        localStorage.setItem('authToken', data.token); // Store the token in localStorage
         document.getElementById('registration-form').style.display = 'none';
         document.getElementById('login-form').style.display = 'none';
         document.getElementById('brand-analysis').style.display = 'block';
@@ -176,11 +177,18 @@ document.getElementById('brand-form').addEventListener('submit', async function 
 
 // Rename fetchHistory to fetchUserHistory
 async function fetchUserHistory() {
+  const token = localStorage.getItem('authToken');
+
+  if (!token) {
+    console.error('No authentication token found.');
+    return;
+  }
+
   try {
     const response = await fetch('/api/history', {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`, // Assuming token is stored in localStorage
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
