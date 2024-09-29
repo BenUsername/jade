@@ -34,7 +34,7 @@ export default authenticate(async function handler(req, res) {
     const servicePrompt = `What is the primary service or industry sector of the website "${domain}"? Provide a concise, specific answer in 10 words or less.`;
 
     const serviceResponse = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [{ role: 'user', content: servicePrompt }],
     });
 
