@@ -1,5 +1,5 @@
 import { getSession } from 'next-auth';
-import dbConnect from '../../lib/dbConnect';
+import dbConnect from '../lib/dbConnect';
 import RankingHistory from '../../models/RankingHistory';
 
 export default async function handler(req, res) {

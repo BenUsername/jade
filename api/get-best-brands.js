@@ -1,6 +1,6 @@
 import { Configuration, OpenAIApi } from 'openai';
-import { getSession } from 'next-auth/react';
-import dbConnect from '../../lib/dbConnect';
+import { getSession } from 'next-auth';
+import dbConnect from '../lib/dbConnect';
 import RankingHistory from '../../models/RankingHistory';
 
 const configuration = new Configuration({
