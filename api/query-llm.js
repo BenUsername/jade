@@ -7,6 +7,12 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Function to validate domain
+function isValidDomain(domain) {
+  const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i;
+  return domainRegex.test(domain);
+}
+
 export default authenticate(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -17,6 +23,10 @@ export default authenticate(async function handler(req, res) {
 
   if (!domain) {
     return res.status(400).json({ error: 'Domain is required' });
+  }
+
+  if (!isValidDomain(domain)) {
+    return res.status(400).json({ error: 'Invalid domain format' });
   }
 
   try {

@@ -143,7 +143,15 @@ document.getElementById('brand-form').addEventListener('submit', async function 
   e.preventDefault();
 
   const domain = document.getElementById('domain-input').value.trim();
-  if (!domain) return;
+  if (!domain) {
+    toastr.error('Please enter a domain');
+    return;
+  }
+
+  if (!isValidDomain(domain)) {
+    toastr.error('Please enter a valid domain (e.g., example.com)');
+    return;
+  }
 
   const resultDiv = document.getElementById('result');
   resultDiv.innerHTML = ''; // Clear previous results
@@ -252,3 +260,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('logout-button').style.display = 'none';
   }
 });
+
+// Function to validate domain
+function isValidDomain(domain) {
+  const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i;
+  return domainRegex.test(domain);
+}
