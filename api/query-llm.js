@@ -21,7 +21,7 @@ async function getIndustryForBrand(brand) {
         { role: 'user', content: industryPrompt }
       ],
       max_tokens: 50,
-      temperature: 0.3,
+      temperature: 0,
     }),
   });
 
@@ -71,13 +71,13 @@ module.exports = authenticate(async (req, res) => {
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
+          model: 'gpt-4o-mini',
           messages: [
             { role: 'system', content: 'You are a critical and analytical assistant that provides detailed and unbiased sentiment analyses of brands based on your knowledge cutoff. If you are unsure about certain aspects, express uncertainty.' },
             { role: 'user', content: prompt }
           ],
           max_tokens: 500,
-          temperature: 0.7,
+          temperature: 0,
         }),
       });
 
