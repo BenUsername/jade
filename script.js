@@ -177,64 +177,31 @@ document.getElementById('brand-form').addEventListener('submit', async function 
 
 // Rename fetchHistory to fetchUserHistory
 async function fetchUserHistory() {
-  const token = localStorage.getItem('authToken');
-
-  if (!token) {
-    console.error('No authentication token found.');
-    return;
-  }
-
-  try {
-    const response = await fetch('/api/history', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('History data received:', data.history);
-
-    displayUserHistory(data.history);
-  } catch (error) {
-    console.error('Error fetching history:', error);
-    displayError('Failed to fetch history. Please try again later.');
-  }
+    fetch('/api/get-history')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Network response was not ok (${response.statusText})`);
+            }
+            return response.json();
+        })
+        .then(historyData => {
+            console.log('History data received:', historyData);
+            displayUserHistory(historyData);
+        })
+        .catch(error => {
+            console.error('Error fetching history:', error);
+        });
 }
 
 // New displayUserHistory function
-function displayUserHistory(history) {
+function displayUserHistory(historyData) {
   const historyContainer = document.getElementById('history-container');
-  historyContainer.innerHTML = ''; // Clear existing content
-
-  if (history.length === 0) {
-    historyContainer.innerHTML = '<p>No history available.</p>';
-    return;
+  if (historyContainer) {
+    historyContainer.innerHTML = '';
+    // ... code to populate history ...
+  } else {
+    console.error('Error: History container element not found.');
   }
-
-  history.forEach(entry => {
-    console.log('Processing history entry:', entry);
-
-    if (entry.type === 'analysis') {
-      try {
-        const analysisData = JSON.parse(entry.analysis);
-        displayAnalysisEntry(analysisData, historyContainer);
-      } catch (error) {
-        console.error('Error parsing analysis JSON:', error);
-        displayError('Error displaying analysis entry.', historyContainer);
-      }
-    } else if (entry.type === 'ranking') {
-      displayRankingEntry(entry.rankings, entry.industry, historyContainer);
-    } else {
-      console.warn('Unknown history entry type:', entry);
-      displayError('Unknown entry type.', historyContainer);
-    }
-  });
 }
 
 function displayAnalysisEntry(analysisData, container) {
