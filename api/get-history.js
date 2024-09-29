@@ -1,10 +1,11 @@
-import { getSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './auth/[...nextauth]';
 import dbConnect from '../lib/dbConnect';
-// Update the import path for RankingHistory
 import RankingHistory from '../models/RankingHistory';
 
 export default async function handler(req, res) {
-  const session = await getSession({ req });
+  const session = await getServerSession(req, res, authOptions);
+
   if (!session) {
     return res.status(401).json({ error: 'Unauthorized' });
   }

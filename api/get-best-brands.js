@@ -1,17 +1,19 @@
-import { Configuration, OpenAIApi } from 'openai';
-import { getSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './auth/[...nextauth]';
+import OpenAI from 'openai';
 import dbConnect from '../lib/dbConnect';
-// Update the import path for RankingHistory
 import RankingHistory from '../models/RankingHistory';
 
-const configuration = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const openai = new OpenAIApi(configuration);
 
 export default async function handler(req, res) {
-  const session = await getSession({ req });
-  if (!session) return res.status(401).json({ error: 'Unauthorized' });
+  const session = await getServerSession(req, res, authOptions);
+
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   const { service } = req.body;
   const userId = session.user.id;
@@ -24,19 +26,17 @@ export default async function handler(req, res) {
     // OpenAI API call to get best brands
     const prompt = `List the top 5 brands that provide the best "${service}" service. Provide only the brand names in order, starting from the best.`;
 
-    const completion = await openai.createCompletion({
-      model: 'text-davinci-003',
-      prompt: prompt,
-      max_tokens: 100,
-      temperature: 0.7,
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: prompt }],
     });
 
-    const rankingsText = completion.data.choices[0].text.trim();
+    const rankingsText = response.choices[0].message.content.trim();
     // Parse the rankings into an array
     const rankings = rankingsText
       .split('\n')
-      .map(item => item.replace(/^\d+\.\s*/, '').trim())
-      .filter(item => item !== '');
+      .map((item) => item.replace(/^\d+\.\s*/, '').trim())
+      .filter((item) => item !== '');
 
     // Save the result to the database
     await dbConnect();

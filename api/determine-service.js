@@ -1,14 +1,17 @@
-import { Configuration, OpenAIApi } from 'openai';
-import { getSession } from 'next-auth';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './auth/[...nextauth]';
+import OpenAI from 'openai';
 
-const configuration = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-const openai = new OpenAIApi(configuration);
 
 export default async function handler(req, res) {
-  const session = await getSession({ req });
-  if (!session) return res.status(401).json({ error: 'Unauthorized' });
+  const session = await getServerSession(req, res, authOptions);
+
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   const { brand } = req.body;
 
@@ -20,14 +23,12 @@ export default async function handler(req, res) {
     // OpenAI API call to determine service
     const prompt = `What service does the brand or website "${brand}" provide? Provide a short description in one sentence.`;
 
-    const completion = await openai.createCompletion({
-      model: 'text-davinci-003',
-      prompt: prompt,
-      max_tokens: 50,
-      temperature: 0.7,
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: prompt }],
     });
 
-    const service = completion.data.choices[0].text.trim();
+    const service = response.choices[0].message.content.trim();
 
     res.status(200).json({ service });
   } catch (error) {
