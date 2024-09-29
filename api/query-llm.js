@@ -36,7 +36,7 @@ export default authenticate(async function handler(req, res) {
     const serviceResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: servicePrompt }],
-      temperature: 0.3, // Lower temperature for more focused answers
+      temperature: 0, // Lower temperature for more focused answers
       max_tokens: 50,   // Limit the response length
     });
 
@@ -48,7 +48,7 @@ export default authenticate(async function handler(req, res) {
     const websitesResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: websitesPrompt }],
-      temperature: 0.7, // Higher temperature for more variety in competitors
+      temperature: 0, // Higher temperature for more variety in competitors
       max_tokens: 100,  // Allow for longer response to include 5 competitors
     });
 
