@@ -4,6 +4,7 @@ import dbConnect from '../lib/dbConnect';
 import RankingHistory from '../models/RankingHistory';
 import https from 'https';
 import { JSDOM } from 'jsdom';
+import puppeteer from 'puppeteer';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -16,58 +17,46 @@ function isValidDomain(domain) {
 }
 
 async function fetchWebContent(domain) {
-  return new Promise((resolve, reject) => {
-    https.get(`https://${domain}`, (res) => {
-      let data = '';
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-      res.on('end', () => {
-        try {
-          const dom = new JSDOM(data);
-          const body = dom.window.document.body;
-          let textContent = '';
-          if (body) {
-            textContent = body.textContent || body.innerText || '';
-          } else {
-            // If there's no body, use the entire document
-            textContent = dom.window.document.documentElement.textContent || 
-                          dom.window.document.documentElement.innerText || '';
-          }
-          // Remove extra whitespace and limit to 6000 characters
-          textContent = textContent.replace(/\s+/g, ' ').trim().substring(0, 6000);
-          resolve(textContent);
-        } catch (error) {
-          console.error('Error parsing HTML:', error);
-          reject(`Error parsing content for ${domain}: ${error.message}`);
-        }
-      });
-    }).on('error', (err) => {
-      console.error('Error fetching web content:', err);
-      reject(`Error fetching content for ${domain}: ${err.message}`);
-    });
+  const browser = await puppeteer.launch({ headless: 'new' });
+  const page = await browser.newPage();
+  await page.goto(`https://${domain}`, { waitUntil: 'networkidle0' });
+
+  const content = await page.evaluate(() => {
+    const articleContent = document.querySelector('article') || document.querySelector('main') || document.body;
+    return articleContent.innerText;
   });
+
+  await browser.close();
+
+  // Split content into chunks of 1000 characters each
+  const chunks = content.match(/.{1,1000}/g) || [];
+  return chunks.slice(0, 6).join('\n\n'); // Return up to 6 chunks (6000 characters)
 }
 
 async function generateKeywordPrompts(domain, webContent) {
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
-      { role: "system", content: "You are a helpful assistant." },
-      { role: "user", content: `Based on the following web content from "${domain}": 
+      { role: "system", content: "You are an AI expert in SEO and content analysis." },
+      { role: "user", content: `Analyze the following web content from "${domain}":
 
-${webContent.substring(0, 3000)} // Limit to first 3000 characters
+${webContent}
 
-Please tell me the top 20 prompts where you think this company would like to rank first. To be more specific, imagine you are the CMO of this company and you would like to see how well you rank on natural language tool's SEO. What would be the 20 prompts you would test first? Do not introduce yourself, give me the list straight`}
+1. Identify the main product or service offered by this website.
+2. List any specific technologies, tools, or platforms mentioned.
+3. Identify unique selling points or key features of their offering.
+4. Determine the target audience or industry for this product/service.
+
+Based on this analysis, generate 20 highly specific keyword phrases that this website would want to rank for in search engines. Focus on the actual product/service offered, not generic terms. Each phrase should be 2-5 words long.` }
     ],
-    max_tokens: 20,
-    temperature: 0,
+    max_tokens: 500,
+    temperature: 0.3,
   });
 
   const keywordPrompts = completion.choices[0].message.content.trim()
     .split('\n')
-    .map(prompt => prompt.replace(/^\d+\.\s*/, '').trim())
-    .filter(prompt => prompt !== '');
+    .filter(line => line.match(/^\d+\./))
+    .map(line => line.replace(/^\d+\.\s*/, '').trim());
 
   return keywordPrompts;
 }
