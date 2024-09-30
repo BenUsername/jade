@@ -84,6 +84,7 @@ export default authenticate(async function handler(req, res) {
       domain,
       keywordPrompts,
       date: new Date(),
+      service: 'Not specified', // Add a default value for the service field
     });
     await rankingHistory.save();
 
