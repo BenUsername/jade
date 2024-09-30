@@ -25,8 +25,18 @@ async function fetchWebContent(domain) {
       res.on('end', () => {
         try {
           const dom = new JSDOM(data);
-          const textContent = dom.window.document.body.innerText;
-          resolve(textContent.substring(0, 6000));
+          const body = dom.window.document.body;
+          let textContent = '';
+          if (body) {
+            textContent = body.textContent || body.innerText || '';
+          } else {
+            // If there's no body, use the entire document
+            textContent = dom.window.document.documentElement.textContent || 
+                          dom.window.document.documentElement.innerText || '';
+          }
+          // Remove extra whitespace and limit to 6000 characters
+          textContent = textContent.replace(/\s+/g, ' ').trim().substring(0, 6000);
+          resolve(textContent);
         } catch (error) {
           console.error('Error parsing HTML:', error);
           reject(`Error parsing content for ${domain}: ${error.message}`);
