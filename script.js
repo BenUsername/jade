@@ -776,3 +776,38 @@ function displaySearchHistory(historyData) {
   
   historyContent.appendChild(table);
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('seoForm');
+    const resultDiv = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const domain = document.getElementById('domain').value;
+        resultDiv.innerHTML = 'Processing...';
+
+        try {
+            const response = await fetch('/api/query-llm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ domain }),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                resultDiv.innerHTML = `
+                    <h2>Keyword Prompts for ${data.domain}:</h2>
+                    <ul>
+                        ${data.keywordPrompts.map(prompt => `<li>${prompt}</li>`).join('')}
+                    </ul>
+                `;
+            } else {
+                resultDiv.innerHTML = `Error: ${data.error}`;
+            }
+        } catch (error) {
+            resultDiv.innerHTML = `Error: ${error.message}`;
+        }
+    });
+});
