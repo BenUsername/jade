@@ -3,7 +3,6 @@ import OpenAI from 'openai';
 import dbConnect from '../lib/dbConnect';
 import RankingHistory from '../models/RankingHistory';
 import https from 'https';
-import { Queue } from 'bullmq';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -103,8 +102,6 @@ async function scoreResponse(domain, response) {
   const score = parseInt(completion.choices[0].message.content.trim());
   return isNaN(score) ? 0 : score;
 }
-
-const myQueue = new Queue('myQueue');
 
 export default authenticate(async function handler(req, res) {
   if (req.method !== 'POST') {
