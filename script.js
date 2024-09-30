@@ -176,6 +176,8 @@ document.getElementById('brand-form').addEventListener('submit', async function 
 
     const data = await response.json();
     displayResults(data);
+    // Fetch and display history for this domain
+    await fetchDomainHistory(domain);
   } catch (error) {
     console.error('Error:', error);
     toastr.error(`An unexpected error occurred: ${error.message}`);
@@ -195,9 +197,134 @@ function displayResults(data) {
       ${data.rankings.map(rank => `<li>${rank}${rank === data.domain ? ' (You)' : ''}</li>`).join('')}
     </ol>
   `;
-  
-  // Fetch and display history for this domain
-  fetchDomainHistory(data.domain);
+}
+
+async function fetchDomainHistory(domain) {
+  try {
+    const response = await fetchWithAuth(`/api/get-history?domain=${encodeURIComponent(domain)}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error fetching domain history:', errorText);
+      toastr.error('Failed to fetch domain history.');
+      return;
+    }
+
+    const historyData = await response.json();
+    console.log('Domain history data received:', historyData);
+    renderDomainHistoryChart(historyData, domain);
+    displaySearchHistory(historyData);
+  } catch (error) {
+    console.error('Error fetching domain history:', error);
+    toastr.error('An unexpected error occurred while fetching domain history.');
+  }
+}
+
+function renderDomainHistoryChart(historyData, currentDomain) {
+  const ctx = document.getElementById('historyChart').getContext('2d');
+
+  // Prepare data for the chart
+  const labels = historyData.map(entry => new Date(entry.date).toLocaleDateString());
+  const datasets = [];
+
+  // Get all unique competitors across all entries
+  const allCompetitors = [...new Set(historyData.flatMap(entry => entry.rankings))];
+
+  // Sort competitors by their average ranking
+  const sortedCompetitors = allCompetitors.sort((a, b) => {
+    const avgRankA = historyData.reduce((sum, entry) => sum + (entry.rankings.indexOf(a) + 1 || 11), 0) / historyData.length;
+    const avgRankB = historyData.reduce((sum, entry) => sum + (entry.rankings.indexOf(b) + 1 || 11), 0) / historyData.length;
+    return avgRankA - avgRankB;
+  });
+
+  // Take top 5 competitors and the current domain
+  const topCompetitors = sortedCompetitors.slice(0, 5);
+  if (!topCompetitors.includes(currentDomain)) {
+    topCompetitors.push(currentDomain);
+  }
+
+  topCompetitors.forEach((competitor, index) => {
+    const data = historyData.map(entry => {
+      const rank = entry.rankings.indexOf(competitor);
+      return rank !== -1 ? rank + 1 : null; // Rank positions start from 1
+    });
+
+    const isCurrentDomain = competitor === currentDomain;
+
+    datasets.push({
+      label: competitor,
+      data: data,
+      borderColor: getColor(index, isCurrentDomain ? '1' : '0.7'),
+      backgroundColor: getColor(index, isCurrentDomain ? '0.2' : '0'),
+      fill: false,
+      borderWidth: isCurrentDomain ? 3 : 1,
+      pointRadius: isCurrentDomain ? 5 : 3,
+      pointHoverRadius: 8,
+    });
+  });
+
+  // Destroy existing chart if it exists
+  if (window.userHistoryChart) {
+    window.userHistoryChart.destroy();
+  }
+
+  // Create new chart
+  window.userHistoryChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: datasets,
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          reverse: true,
+          min: 1,
+          max: 10,
+          ticks: {
+            stepSize: 1,
+            callback: function(value) {
+              return value > 10 ? '' : value.toString();
+            }
+          },
+          title: {
+            display: true,
+            text: 'Rank Position',
+          },
+        },
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            title: function(tooltipItems) {
+              return `Date: ${tooltipItems[0].label}`;
+            },
+            label: function(context) {
+              const label = context.dataset.label;
+              const value = context.parsed.y;
+              return `${label}: ${value === null ? 'Not in top 10' : `Rank ${value}`}`;
+            }
+          }
+        }
+      },
+      interaction: {
+        mode: 'nearest',
+        axis: 'x',
+        intersect: false
+      },
+      hover: {
+        mode: 'nearest',
+        intersect: true
+      },
+    },
+  });
 }
 
 // Update other functions to use 'domain' instead of 'brand'
