@@ -138,6 +138,7 @@ document.getElementById('logout-button').addEventListener('click', function () {
   localStorage.removeItem('authToken');
   document.getElementById('auth-container').style.display = 'block';
   document.getElementById('post-login-content').style.display = 'none';
+  document.querySelector('.contact-us').style.display = 'none'; // Hide contact us button
 });
 
 // Expandable sections
@@ -498,6 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('auth-container').style.display = 'block';
     document.getElementById('login-form').style.display = 'block';
     document.getElementById('post-login-content').style.display = 'none';
+    document.querySelector('.contact-us').style.display = 'none'; // Hide contact us button
   }
 });
 
@@ -691,8 +693,8 @@ function displaySearchHistory(historyData) {
 function updateUIForLoggedInUser() {
   document.getElementById('auth-container').style.display = 'none';
   document.getElementById('post-login-content').style.display = 'block';
-  document.getElementById('brand-analysis').style.display = 'block';
-  document.querySelector('.chart-container').style.display = 'none'; // Hide chart container initially
+  document.querySelector('.contact-us').style.display = 'block'; // Show contact us button
+  showSection('brand-analysis');
   fetchUserHistory();
   setupCollapsible();
 }
@@ -740,6 +742,7 @@ document.getElementById('search-history-link').addEventListener('click', (e) => 
 function updateUIForLoggedInUser() {
   document.getElementById('auth-container').style.display = 'none';
   document.getElementById('post-login-content').style.display = 'block';
+  document.querySelector('.contact-us').style.display = 'block'; // Show contact us button
   showSection('brand-analysis');
   fetchUserHistory();
 }
@@ -750,6 +753,7 @@ document.getElementById('logout-button').addEventListener('click', function () {
   localStorage.removeItem('authToken');
   document.getElementById('auth-container').style.display = 'block';
   document.getElementById('post-login-content').style.display = 'none';
+  document.querySelector('.contact-us').style.display = 'none'; // Hide contact us button
 });
 
 // Modify fetchUserHistory function
