@@ -31,40 +31,18 @@ async function fetchWebContent(domain) {
   });
 }
 
-async function queryAPIForService(domain, webContent) {
-  const servicePrompt = `Based on the following web content from "${domain}":
-
-${webContent.substring(0, 2000)} // Limit to first 2000 characters to avoid token limits
-
-What is the most likely primary service or industry sector of this website? Provide a concise, specific answer in 10 words or less.`;
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: servicePrompt }],
-      temperature: 0.3,
-      max_tokens: 50,
-    });
-
-    return response.choices[0].message.content.trim();
-  } catch (error) {
-    console.error('Error querying API:', error);
-    throw error;
-  }
-}
-
 async function generateKeywordPrompts(domain, webContent) {
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-4",
     messages: [
       { role: "system", content: "You are a helpful assistant." },
       { role: "user", content: `Based on the following web content from "${domain}": 
 
 ${webContent.substring(0, 3000)} // Limit to first 3000 characters
 
-Please tell me the top 20 prompts where you think this company would like to rank first. To be more specific, imagine you are the CMO of this company and you would like to see how well you rank on natural language tool's SEO. What would be the 20 prompts you would test first? Do not introduce yourself, give me the list staight`}
+Please tell me the top 20 prompts where you think this company would like to rank first. To be more specific, imagine you are the CMO of this company and you would like to see how well you rank on natural language tool's SEO. What would be the 20 prompts you would test first? Do not introduce yourself, give me the list straight`}
     ],
-    max_tokens: 50,
+    max_tokens: 500,
     temperature: 0,
   });
 
@@ -76,39 +54,16 @@ Please tell me the top 20 prompts where you think this company would like to ran
   return keywordPrompts;
 }
 
-async function queryLLM(domain, keywords) {
-    const prompt = `Generate SEO recommendations for the website ${domain} targeting the following keywords: ${keywords}. Include suggestions for content, meta tags, and internal linking.`;
-
-    try {
-        const response = await openai.chat.completions.create({
-            model: "gpt-4",
-            messages: [
-                { role: "system", content: "You are an SEO expert assistant." },
-                { role: "user", content: prompt }
-            ],
-            max_tokens: 500,
-            temperature: 0.7,
-        });
-
-        return response.choices[0].message.content.trim();
-    } catch (error) {
-        console.error('Error querying LLM:', error);
-        throw error;
-    }
-}
-
-module.exports = { queryLLM };
-
 export default authenticate(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
-  const { domain, keywords } = req.body;
+  const { domain } = req.body;
   const userId = req.userId;
 
-  if (!domain || !keywords) {
-    return res.status(400).json({ error: 'Domain and keywords are required' });
+  if (!domain) {
+    return res.status(400).json({ error: 'Domain is required' });
   }
 
   if (!isValidDomain(domain)) {
@@ -119,48 +74,23 @@ export default authenticate(async function handler(req, res) {
     // Fetch web content
     const webContent = await fetchWebContent(domain);
 
-    // Get service from API
-    const service = await queryAPIForService(domain, webContent);
-
     // Generate keyword prompts
     const keywordPrompts = await generateKeywordPrompts(domain, webContent);
-
-    // Query LLM for SEO recommendations
-    const seoRecommendations = await queryLLM(domain, keywords);
 
     // Save the result to the database
     await dbConnect();
     const rankingHistory = new RankingHistory({
       userId,
       domain,
-      service,
       keywordPrompts,
-      seoRecommendations,
       date: new Date(),
     });
     await rankingHistory.save();
 
-    res.status(200).json({ domain, service, keywordPrompts, seoRecommendations });
+    res.status(200).json({ domain, keywordPrompts });
 
   } catch (error) {
     console.error('Error processing request:', error);
     res.status(500).json({ error: 'Failed to process request', details: error.message });
   }
 });
-
-// Add a new endpoint to receive browser results
-export async function receiveBrowserResult(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const { result } = req.body;
-
-  if (!result) {
-    return res.status(400).json({ error: 'Result is required' });
-  }
-
-  // Store the result or process it as needed
-  // For now, we'll just return it
-  res.status(200).json({ success: true, browserResult: result });
-}
