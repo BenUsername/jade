@@ -34,10 +34,13 @@ export default authenticate(async function handler(req, res) {
     const servicePrompt = `What is the primary service or industry sector of the website "${domain}"? Provide a concise, specific answer in 10 words or less.`;
 
     const serviceResponse = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: servicePrompt }],
-      temperature: 0, // Lower temperature for more focused answers
-      max_tokens: 50,   // Limit the response length
+      model: 'gpt-4o-mini',  // Use the latest GPT-4 model
+      messages: [
+        { role: 'system', content: 'You are a highly knowledgeable AI assistant specializing in identifying business services and industry sectors based on website domains.' },
+        { role: 'user', content: servicePrompt }
+      ],
+      temperature: 0.3,  // Slightly increase temperature for more nuanced responses
+      max_tokens: 100,   // Increase token limit for more detailed responses
     });
 
     const service = serviceResponse.choices[0].message.content.trim();
