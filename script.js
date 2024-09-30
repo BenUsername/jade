@@ -57,6 +57,7 @@ document.getElementById('register-form').addEventListener('submit', async functi
   const password = document.getElementById('register-password').value.trim();
 
   try {
+    console.log('Sending registration request...');
     const response = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -64,12 +65,17 @@ document.getElementById('register-form').addEventListener('submit', async functi
     });
 
     const data = await response.json();
+    console.log('Registration response:', data);
+
     if (response.ok) {
       toastr.success(data.message || 'Registration successful! You can now log in.');
       // Clear the form
       document.getElementById('register-form').reset();
     } else {
       toastr.error(`Error: ${data.error}`);
+      if (data.details) {
+        console.error('Error details:', data.details);
+      }
     }
   } catch (error) {
     console.error('Error:', error);

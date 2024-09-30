@@ -12,25 +12,29 @@ console.log('SendGrid API Key:', process.env.SENDGRID_API_KEY);
 // sendgrid.setApiKey(process.env.SENDGRID_API_KEY);
 
 module.exports = async (req, res) => {
+  console.log('Registration request received:', req.body);
+
   if (req.method !== 'POST') {
+    console.log('Invalid method:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   let { username, email, password } = req.body;
 
   if (!username || !email || !password) {
+    console.log('Missing required fields');
     return res.status(400).json({ error: 'Please provide all required fields' });
   }
 
   // Validate inputs
   if (!validator.isEmail(email)) {
-    res.status(400).json({ error: 'Invalid email address' });
-    return;
+    console.log('Invalid email:', email);
+    return res.status(400).json({ error: 'Invalid email address' });
   }
 
   if (!validator.isAlphanumeric(username)) {
-    res.status(400).json({ error: 'Username must be alphanumeric' });
-    return;
+    console.log('Invalid username:', username);
+    return res.status(400).json({ error: 'Username must be alphanumeric' });
   }
 
   // Sanitize inputs
@@ -38,19 +42,25 @@ module.exports = async (req, res) => {
   email = validator.normalizeEmail(email);
 
   try {
+    console.log('Connecting to database...');
     await dbConnect();
+    console.log('Connected to database');
 
     // Check if user already exists
+    console.log('Checking for existing user...');
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
     if (existingUser) {
+      console.log('User already exists:', existingUser);
       return res.status(400).json({ error: 'Username or email already exists' });
     }
 
     // Hash password
+    console.log('Hashing password...');
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create new user
+    console.log('Creating new user...');
     const user = new User({
       username,
       email,
@@ -58,6 +68,7 @@ module.exports = async (req, res) => {
     });
 
     // Save the user
+    console.log('Saving user to database...');
     await user.save();
 
     console.log('User registered successfully:', user);
@@ -65,6 +76,6 @@ module.exports = async (req, res) => {
     res.status(200).json({ message: 'Registration successful!' });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ error: 'An error occurred during registration' });
+    res.status(500).json({ error: 'An error occurred during registration', details: error.message });
   }
 };
