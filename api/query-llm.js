@@ -31,28 +31,23 @@ async function queryAPIForService(domain, userDescription) {
   }
 }
 
-async function generateKeywordPrompts(domain) {
-  const prompt = `Based on the content you see on ${domain}, please tell me the top 20 prompts where you think this company would like to rank first. To be more specific, imagine you are the CMO of this company and you would like to see how well you rank on natural language tool's SEO. What would be the 20 prompts you would test first?`;
+async function generateKeywordPrompts(domain, userDescription) {
+  const completion = await openai.chat.completions.create({
+    model: "gpt-3.5-turbo",
+    messages: [
+      { role: "system", content: "You are a helpful assistant." },
+      { role: "user", content: `Generate 20 keyword prompts for the domain ${domain} based on this description: ${userDescription}` }
+    ],
+    // Remove the timeout parameter if it exists
+    // timeout: 60000, // Remove this line
+  });
 
-  try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      max_tokens: 500,
-      timeout: 60000, // 60 seconds timeout
-    });
+  const keywordPrompts = completion.choices[0].message.content.trim()
+    .split('\n')
+    .map(prompt => prompt.replace(/^\d+\.\s*/, '').trim())
+    .filter(prompt => prompt !== '');
 
-    const keywordPrompts = response.choices[0].message.content.trim()
-      .split('\n')
-      .map(prompt => prompt.replace(/^\d+\.\s*/, '').trim())
-      .filter(prompt => prompt !== '');
-
-    return keywordPrompts;
-  } catch (error) {
-    console.error('Error generating keyword prompts:', error);
-    throw error;
-  }
+  return keywordPrompts;
 }
 
 export default authenticate(async function handler(req, res) {
@@ -94,7 +89,7 @@ export default authenticate(async function handler(req, res) {
       .filter((item) => item !== '');
 
     // Generate keyword prompts
-    const keywordPrompts = await generateKeywordPrompts(domain);
+    const keywordPrompts = await generateKeywordPrompts(domain, userDescription);
 
     // Save the result to the database
     await dbConnect();
