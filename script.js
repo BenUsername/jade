@@ -107,13 +107,12 @@ if (loginForm) {
       if (response.ok) {
         toastr.success('Login successful!');
         authToken = data.token;
-        localStorage.setItem('authToken', data.token); // Store the token in localStorage
+        localStorage.setItem('authToken', data.token);
         document.getElementById('registration-form').style.display = 'none';
         document.getElementById('login-form').style.display = 'none';
-        document.getElementById('brand-analysis').style.display = 'block';
-        document.getElementById('logout-button').style.display = 'block';
+        document.getElementById('post-login-content').style.display = 'block';
         console.log('Login successful, UI updated');
-        fetchUserHistory();  // Fetch user history after successful login
+        fetchUserHistory();
       } else {
         toastr.error(`Error: ${data.error}`);
         console.log('Login error:', data.error);
@@ -132,10 +131,18 @@ if (loginForm) {
 // Logout
 document.getElementById('logout-button').addEventListener('click', function () {
   authToken = null;
+  localStorage.removeItem('authToken');
   document.getElementById('registration-form').style.display = 'block';
   document.getElementById('login-form').style.display = 'block';
-  document.getElementById('brand-analysis').style.display = 'none';
-  document.getElementById('logout-button').style.display = 'none';
+  document.getElementById('post-login-content').style.display = 'none';
+});
+
+// Expandable sections
+document.querySelectorAll('.expandable-section').forEach(section => {
+  section.addEventListener('click', function() {
+    const content = this.nextElementSibling;
+    content.style.display = content.style.display === 'none' ? 'block' : 'none';
+  });
 });
 
 // Modify the Brand Analysis Form Submission
@@ -239,22 +246,20 @@ async function fetchDomainHistory(domain) {
 
 // Update other functions accordingly
 
-// Initialize fetching user history on page load
+// Initialize UI on page load
 document.addEventListener('DOMContentLoaded', () => {
   authToken = localStorage.getItem('authToken');
   if (authToken) {
     // User is already logged in
     document.getElementById('registration-form').style.display = 'none';
     document.getElementById('login-form').style.display = 'none';
-    document.getElementById('brand-analysis').style.display = 'block';
-    document.getElementById('logout-button').style.display = 'block';
+    document.getElementById('post-login-content').style.display = 'block';
     fetchUserHistory();
   } else {
     // User is not logged in
     document.getElementById('registration-form').style.display = 'block';
     document.getElementById('login-form').style.display = 'block';
-    document.getElementById('brand-analysis').style.display = 'none';
-    document.getElementById('logout-button').style.display = 'none';
+    document.getElementById('post-login-content').style.display = 'none';
   }
 });
 

@@ -21,12 +21,23 @@
       background-color: #f8f9fa;
     }
     #registration-form,
-    #login-form {
+    #login-form,
+    #brand-analysis {
       max-width: 500px;
       margin: auto;
       background: white;
       padding: 30px;
       border-radius: 10px;
+    }
+    .form-label {
+      text-align: left;
+      display: block;
+    }
+    .expandable-section {
+      cursor: pointer;
+    }
+    .expandable-content {
+      display: none;
     }
   </style>
 </head>
@@ -41,36 +52,15 @@
       <form id="register-form">
         <div class="mb-3">
           <label for="register-username" class="form-label">Username</label>
-          <input
-            type="text"
-            class="form-control"
-            id="register-username"
-            placeholder="Enter your username"
-            required
-            autocomplete="username"
-          />
+          <input type="text" class="form-control" id="register-username" required autocomplete="username" />
         </div>
         <div class="mb-3">
           <label for="register-email" class="form-label">Email</label>
-          <input
-            type="email"
-            class="form-control"
-            id="register-email"
-            placeholder="Enter your email"
-            required
-            autocomplete="email"
-          />
+          <input type="email" class="form-control" id="register-email" required autocomplete="email" />
         </div>
         <div class="mb-3">
           <label for="register-password" class="form-label">Password</label>
-          <input
-            type="password"
-            class="form-control"
-            id="register-password"
-            placeholder="Enter your password"
-            required
-            autocomplete="new-password"
-          />
+          <input type="password" class="form-control" id="register-password" required autocomplete="new-password" />
         </div>
         <button type="submit" class="btn btn-primary w-100">Register</button>
       </form>
@@ -82,66 +72,62 @@
       <form id="login-form-element">
         <div class="mb-3">
           <label for="login-username" class="form-label">Username</label>
-          <input
-            type="text"
-            class="form-control"
-            id="login-username"
-            placeholder="Enter your username"
-            required
-            autocomplete="username"
-          />
+          <input type="text" class="form-control" id="login-username" required autocomplete="username" />
         </div>
         <div class="mb-3">
           <label for="login-password" class="form-label">Password</label>
-          <input
-            type="password"
-            class="form-control"
-            id="login-password"
-            placeholder="Enter your password"
-            required
-            autocomplete="current-password"
-          />
+          <input type="password" class="form-control" id="login-password" required autocomplete="current-password" />
         </div>
         <button type="submit" class="btn btn-primary w-100">Login</button>
       </form>
     </div>
 
-    <!-- Logout Button -->
-    <button id="logout-button" class="btn btn-danger mt-3" style="display: none;">Logout</button>
+    <!-- Post-Login Content -->
+    <div id="post-login-content" style="display: none;">
+      <!-- Logout Button -->
+      <button id="logout-button" class="btn btn-danger mt-3">Logout</button>
 
-    <!-- Brand Analysis Form -->
-    <div id="brand-analysis" class="mt-5" style="display: none;">
-      <form id="brand-form">
-        <div class="mb-3">
-          <label for="domain-input" class="form-label">Domain</label>
-          <input type="text" class="form-control" id="domain-input" placeholder="Enter domain" required>
+      <!-- Brand Analysis Form -->
+      <div id="brand-analysis" class="mt-5">
+        <h3 class="expandable-section">Brand Analysis</h3>
+        <div class="expandable-content">
+          <form id="brand-form">
+            <div class="mb-3">
+              <label for="domain-input" class="form-label">Domain</label>
+              <input type="text" class="form-control" id="domain-input" placeholder="Enter domain" required>
+            </div>
+            <div class="mb-3">
+              <label for="user-description-input" class="form-label">What do you do?</label>
+              <input type="text" class="form-control" id="user-description-input" placeholder="Briefly describe what you do" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Analyze</button>
+          </form>
         </div>
-        <div class="mb-3">
-          <label for="user-description-input" class="form-label">What do you do?</label>
-          <input type="text" class="form-control" id="user-description-input" placeholder="Briefly describe what you do" required>
+        <!-- Loading Spinner -->
+        <div id="loading" class="text-center mt-3" style="display: none;">
+          <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary">Analyze</button>
-      </form>
-      <!-- Loading Spinner -->
-      <div id="loading" class="text-center mt-3" style="display: none;">
-        <div class="spinner-border" role="status">
-          <span class="visually-hidden">Loading...</span>
+        <div id="result" class="mt-3"></div>
+      </div>
+
+      <!-- Ranking History Section -->
+      <div id="history-section" class="container mt-5">
+        <h3 class="expandable-section">Your Ranking History</h3>
+        <div class="expandable-content">
+          <div class="container">
+            <canvas id="historyChart" width="400" height="200"></canvas>
+          </div>
         </div>
       </div>
-      <div id="result" class="mt-3"></div>
-    </div>
 
-    <!-- New History Section -->
-    <div id="history-section" class="container mt-5">
-      <h2 class="text-center mb-4">Your Ranking History</h2>
-      <div class="container">
-        <canvas id="historyChart" width="400" height="200"></canvas>
+      <!-- Search History -->
+      <div id="search-history" class="mt-5">
+        <h3 class="expandable-section">Search History</h3>
+        <div class="expandable-content"></div>
       </div>
     </div>
-    <div id="history-container"></div>
-
-    <!-- Add this where you want the search history to appear -->
-    <div id="search-history"></div>
   </div>
 
   <!-- Include jQuery -->
