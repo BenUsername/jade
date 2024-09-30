@@ -325,10 +325,17 @@ function renderDomainHistoryChart(historyData, currentDomain) {
   // Sort competitors by their overall average ranking
   const sortedCompetitors = overallAverages.sort((a, b) => a.average - b.average);
 
+  // Take top 9 competitors and ensure the current domain is included
+  let topCompetitors = sortedCompetitors.slice(0, 9).map(item => item.competitor);
+  if (!topCompetitors.includes(currentDomain)) {
+    topCompetitors.pop(); // Remove the last competitor
+    topCompetitors.unshift(currentDomain); // Add current domain at the beginning
+  }
+
   // Assign integer ranks from 1 to 10 based on the sorted averages
-  const rankedCompetitors = sortedCompetitors.map((item, index) => ({
-    ...item,
-    rank: Math.min(index + 1, 10) // Ensure rank is between 1 and 10
+  const rankedCompetitors = topCompetitors.map((competitor, index) => ({
+    competitor,
+    rank: index + 1 // Rank from 1 to 10
   }));
 
   const datasets = rankedCompetitors.map((competitor, index) => ({
