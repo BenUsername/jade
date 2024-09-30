@@ -213,7 +213,14 @@ async function fetchDomainHistory(domain) {
 
     const historyData = await response.json();
     console.log('Domain history data received:', historyData);
-    renderDomainHistoryChart(historyData, domain);  // Pass domain as second argument
+    
+    if (historyData.length === 0) {
+      console.log('No history data available for this domain.');
+      document.querySelector('.chart-container').style.display = 'none';
+      return;
+    }
+    
+    renderDomainHistoryChart(historyData, domain);
     displaySearchHistory(historyData);
   } catch (error) {
     console.error('Error fetching domain history:', error);
@@ -222,10 +229,12 @@ async function fetchDomainHistory(domain) {
 }
 
 function renderDomainHistoryChart(historyData, currentDomain) {
+  console.log('Rendering chart with data:', historyData);
   const chartContainer = document.querySelector('.chart-container');
   const ctx = document.getElementById('historyChart').getContext('2d');
 
   if (historyData.length === 0) {
+    console.log('No data to render chart.');
     chartContainer.style.display = 'none';
     return;
   }
@@ -271,6 +280,8 @@ function renderDomainHistoryChart(historyData, currentDomain) {
       pointHoverRadius: 8,
     });
   });
+
+  console.log('Chart datasets:', datasets);
 
   // Destroy existing chart if it exists
   if (window.userHistoryChart) {
@@ -334,6 +345,8 @@ function renderDomainHistoryChart(historyData, currentDomain) {
       },
     },
   });
+
+  console.log('Chart rendered');
 }
 
 // Update other functions to use 'domain' instead of 'brand'
