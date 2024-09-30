@@ -113,6 +113,7 @@ if (loginForm) {
         document.getElementById('post-login-content').style.display = 'block';
         console.log('Login successful, UI updated');
         fetchUserHistory();
+        setupCollapsible(); // Set up collapsible elements
       } else {
         toastr.error(`Error: ${data.error}`);
         console.log('Login error:', data.error);
@@ -255,6 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('login-form').style.display = 'none';
     document.getElementById('post-login-content').style.display = 'block';
     fetchUserHistory();
+    setupCollapsible(); // Set up collapsible elements
   } else {
     // User is not logged in
     document.getElementById('registration-form').style.display = 'block';
@@ -402,10 +404,26 @@ function renderDomainHistoryChart(historyData) {
   });
 }
 
-// Add this function to display search history
+// Add this function to handle collapsible elements
+function setupCollapsible() {
+  var coll = document.getElementsByClassName("collapsible");
+  for (var i = 0; i < coll.length; i++) {
+    coll[i].addEventListener("click", function() {
+      this.classList.toggle("active");
+      var content = this.nextElementSibling;
+      if (content.style.display === "block") {
+        content.style.display = "none";
+      } else {
+        content.style.display = "block";
+      }
+    });
+  }
+}
+
+// Modify the displaySearchHistory function
 function displaySearchHistory(historyData) {
-  const historyDiv = document.getElementById('search-history');
-  historyDiv.innerHTML = '<h3>Search History</h3>';
+  const historyContent = document.querySelector('#search-history .content');
+  historyContent.innerHTML = ''; // Clear existing content
   
   const table = document.createElement('table');
   table.className = 'table';
@@ -428,5 +446,5 @@ function displaySearchHistory(historyData) {
     </tbody>
   `;
   
-  historyDiv.appendChild(table);
+  historyContent.appendChild(table);
 }

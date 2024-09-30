@@ -39,6 +39,28 @@
     .expandable-content {
       display: none;
     }
+    .collapsible {
+      background-color: #eee;
+      color: #444;
+      cursor: pointer;
+      padding: 18px;
+      width: 100%;
+      border: none;
+      text-align: left;
+      outline: none;
+      font-size: 15px;
+    }
+
+    .active, .collapsible:hover {
+      background-color: #ccc;
+    }
+
+    .content {
+      padding: 0 18px;
+      display: none;
+      overflow: hidden;
+      background-color: #f1f1f1;
+    }
   </style>
 </head>
 <body>
@@ -89,20 +111,18 @@
 
       <!-- Brand Analysis Form -->
       <div id="brand-analysis" class="mt-5">
-        <h3 class="expandable-section">Brand Analysis</h3>
-        <div class="expandable-content">
-          <form id="brand-form">
-            <div class="mb-3">
-              <label for="domain-input" class="form-label">Domain</label>
-              <input type="text" class="form-control" id="domain-input" placeholder="Enter domain" required>
-            </div>
-            <div class="mb-3">
-              <label for="user-description-input" class="form-label">What do you do?</label>
-              <input type="text" class="form-control" id="user-description-input" placeholder="Briefly describe what you do" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Analyze</button>
-          </form>
-        </div>
+        <h3>Brand Analysis</h3>
+        <form id="brand-form">
+          <div class="mb-3">
+            <label for="domain-input" class="form-label">Domain</label>
+            <input type="text" class="form-control" id="domain-input" placeholder="Enter domain" required>
+          </div>
+          <div class="mb-3">
+            <label for="user-description-input" class="form-label">What do you do?</label>
+            <input type="text" class="form-control" id="user-description-input" placeholder="Briefly describe what you do" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Analyze</button>
+        </form>
         <!-- Loading Spinner -->
         <div id="loading" class="text-center mt-3" style="display: none;">
           <div class="spinner-border" role="status">
@@ -114,18 +134,18 @@
 
       <!-- Ranking History Section -->
       <div id="history-section" class="container mt-5">
-        <h3 class="expandable-section">Your Ranking History</h3>
-        <div class="expandable-content">
-          <div class="container">
-            <canvas id="historyChart" width="400" height="200"></canvas>
-          </div>
+        <h3>Your Ranking History</h3>
+        <div class="container">
+          <canvas id="historyChart" width="400" height="200"></canvas>
         </div>
       </div>
 
       <!-- Search History -->
       <div id="search-history" class="mt-5">
-        <h3 class="expandable-section">Search History</h3>
-        <div class="expandable-content"></div>
+        <button type="button" class="collapsible">Search History</button>
+        <div class="content">
+          <!-- Search history content will be populated here -->
+        </div>
       </div>
     </div>
   </div>
