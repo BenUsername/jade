@@ -313,20 +313,16 @@ function renderDomainHistoryChart(historyData, currentDomain) {
   const labels = averagedData.map(entry => entry.date);
   const allCompetitors = [...new Set(averagedData.flatMap(entry => Object.keys(entry.rankings)))];
 
-  // Sort competitors by their average ranking
-  const sortedCompetitors = allCompetitors.sort((a, b) => {
-    const avgA = averagedData.reduce((sum, entry) => sum + (entry.rankings[a] || 11), 0) / averagedData.length;
-    const avgB = averagedData.reduce((sum, entry) => sum + (entry.rankings[b] || 11), 0) / averagedData.length;
-    return avgA - avgB;
+  // Calculate overall average rankings
+  const overallAverages = allCompetitors.map(competitor => {
+    const sum = averagedData.reduce((acc, entry) => acc + (entry.rankings[competitor] || 0), 0);
+    return { competitor, average: sum / averagedData.length };
   });
 
-  // Take top 10 competitors and the current domain
-  const topCompetitors = sortedCompetitors.slice(0, 9);
-  if (!topCompetitors.includes(currentDomain)) {
-    topCompetitors.unshift(currentDomain);
-  }
+  // Sort competitors by their overall average ranking
+  const sortedCompetitors = overallAverages.sort((a, b) => a.average - b.average).map(item => item.competitor);
 
-  const datasets = topCompetitors.map((competitor, index) => ({
+  const datasets = sortedCompetitors.map((competitor, index) => ({
     label: competitor,
     data: averagedData.map(entry => entry.rankings[competitor] || null),
     borderColor: getColorScheme(index),
@@ -335,7 +331,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     borderWidth: competitor === currentDomain ? 3 : 2,
     pointRadius: competitor === currentDomain ? 5 : 3,
     pointHoverRadius: 8,
-    hidden: index >= 5 && competitor !== currentDomain, // Hide datasets beyond top 5 initially
+    hidden: false, // Make all competitors visible by default
   }));
 
   // Destroy existing chart if it exists
@@ -366,7 +362,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
           },
           title: {
             display: true,
-            text: 'Average Rank Position',
+            text: 'Rank Position',
           },
         },
       },
@@ -384,7 +380,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
             label: function(context) {
               const label = context.dataset.label;
               const value = context.parsed.y;
-              return `${label}: ${value === null ? 'Not in top 10' : `Avg Rank ${value.toFixed(2)}`}`;
+              return `${label}: ${value === null ? 'Not in top 10' : `Rank ${value.toFixed(2)}`}`;
             }
           }
         }
@@ -401,7 +397,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     },
   });
 
-  createLegendButtons(topCompetitors, window.userHistoryChart);
+  createLegendButtons(sortedCompetitors, window.userHistoryChart);
 }
 
 // Add CSV export functionality
