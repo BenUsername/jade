@@ -2,6 +2,8 @@ import authenticate from '../middleware/auth';
 import OpenAI from 'openai';
 import dbConnect from '../lib/dbConnect';
 import RankingHistory from '../models/RankingHistory';
+import axios from 'axios';
+import cheerio from 'cheerio';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -13,8 +15,24 @@ function isValidDomain(domain) {
   return domainRegex.test(domain);
 }
 
-async function queryAPIForService(domain, userDescription) {
-  const servicePrompt = `Given the domain "${domain}" and the user's description of what they do: "${userDescription}", what is the most likely primary service or industry sector of this website? Provide a concise, specific answer in 10 words or less.`;
+async function fetchWebContent(domain) {
+  try {
+    const response = await axios.get(`https://${domain}`);
+    const $ = cheerio.load(response.data);
+    // Extract text content from the body
+    return $('body').text().trim();
+  } catch (error) {
+    console.error('Error fetching web content:', error);
+    return `Error fetching content for ${domain}: ${error.message}`;
+  }
+}
+
+async function queryAPIForService(domain, webContent) {
+  const servicePrompt = `Based on the following web content from "${domain}":
+
+${webContent.substring(0, 2000)} // Limit to first 2000 characters to avoid token limits
+
+What is the most likely primary service or industry sector of this website? Provide a concise, specific answer in 10 words or less.`;
 
   try {
     const response = await openai.chat.completions.create({
@@ -31,14 +49,18 @@ async function queryAPIForService(domain, userDescription) {
   }
 }
 
-async function generateKeywordPrompts(domain, userDescription) {
+async function generateKeywordPrompts(domain, webContent) {
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: "You are a helpful assistant." },
-      { role: "user", content: `Based on the content you see on "${domain}", please tell me the top 20 prompts where you think this company would like to rank first. To be more specific, imagine you are the CMO of this company and you would like to see how well you rank on natural language tool's SEO. What would be the 20 prompts you would test first?`}
+      { role: "user", content: `Based on the following web content from "${domain}": 
+
+${webContent.substring(0, 3000)} // Limit to first 3000 characters
+
+Please tell me the top 20 prompts where you think this company would like to rank first. To be more specific, imagine you are the CMO of this company and you would like to see how well you rank on natural language tool's SEO. What would be the 20 prompts you would test first?`}
     ],
-    max_tokens: 50,
+    max_tokens: 500,
     temperature: 0,
   });
 
@@ -55,11 +77,11 @@ export default authenticate(async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
-  const { domain, userDescription } = req.body;
+  const { domain } = req.body;
   const userId = req.userId;
 
-  if (!domain || !userDescription) {
-    return res.status(400).json({ error: 'Domain and user description are required' });
+  if (!domain) {
+    return res.status(400).json({ error: 'Domain is required' });
   }
 
   if (!isValidDomain(domain)) {
@@ -67,11 +89,14 @@ export default authenticate(async function handler(req, res) {
   }
 
   try {
+    // Fetch web content
+    const webContent = await fetchWebContent(domain);
+
     // Get service from API
-    const service = await queryAPIForService(domain, userDescription);
+    const service = await queryAPIForService(domain, webContent);
 
     // Get competitors using API
-    const websitesPrompt = `Based on the domain "${domain}", the user's description "${userDescription}", and the identified service "${service}", list the top 10 most popular and reputable websites that might directly compete with this domain. Provide only the domain names, separated by newlines, starting with the most prominent competitor.`;
+    const websitesPrompt = `Based on the domain "${domain}" and the identified service "${service}", list the top 10 most popular and reputable websites that might directly compete with this domain. Provide only the domain names, separated by newlines, starting with the most prominent competitor.`;
 
     const websitesResponse = await openai.chat.completions.create({
       model: 'gpt-4',
@@ -80,7 +105,7 @@ export default authenticate(async function handler(req, res) {
         { role: 'user', content: websitesPrompt }
       ],
       temperature: 0.7,
-      max_tokens: 200, // Increased to accommodate more competitors
+      max_tokens: 200,
     });
 
     const rankings = websitesResponse.choices[0].message.content.trim()
@@ -89,14 +114,13 @@ export default authenticate(async function handler(req, res) {
       .filter((item) => item !== '');
 
     // Generate keyword prompts
-    const keywordPrompts = await generateKeywordPrompts(domain, userDescription);
+    const keywordPrompts = await generateKeywordPrompts(domain, webContent);
 
     // Save the result to the database
     await dbConnect();
     const rankingHistory = new RankingHistory({
       userId,
       domain,
-      userDescription,
       service,
       rankings,
       keywordPrompts,
@@ -104,7 +128,7 @@ export default authenticate(async function handler(req, res) {
     });
     await rankingHistory.save();
 
-    res.status(200).json({ domain, userDescription, service, rankings, keywordPrompts });
+    res.status(200).json({ domain, service, rankings, keywordPrompts });
 
   } catch (error) {
     console.error('Error processing request:', error);
