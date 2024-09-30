@@ -274,8 +274,8 @@ function renderDomainHistoryChart(historyData, currentDomain) {
   
   const ctx = canvas.getContext('2d');
 
-  if (!historyData || historyData.length === 0 || historyData[0].domain !== currentDomain) {
-    console.log('No data to render chart or data is not for the current domain.');
+  if (!historyData || historyData.length === 0) {
+    console.log('No data to render chart.');
     chartContainer.style.display = 'none';
     return;
   }
