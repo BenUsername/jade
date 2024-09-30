@@ -61,6 +61,15 @@
       overflow: hidden;
       background-color: #f1f1f1;
     }
+    #history-section {
+      margin-bottom: 20px;
+    }
+    #historyChart {
+      display: none;
+    }
+    .collapsible {
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -133,15 +142,15 @@
       </div>
 
       <!-- Ranking History Section -->
-      <div id="history-section" class="container mt-5">
+      <div id="history-section" class="mt-5">
         <h3>Your Ranking History</h3>
-        <div class="container" style="height: 400px;"> <!-- Adjust the height as needed -->
+        <div class="chart-container" style="position: relative; height:400px; width:100%;">
           <canvas id="historyChart"></canvas>
         </div>
       </div>
 
       <!-- Search History -->
-      <div id="search-history" class="mt-5">
+      <div id="search-history">
         <button type="button" class="collapsible">Search History</button>
         <div class="content">
           <!-- Search history content will be populated here -->

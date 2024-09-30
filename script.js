@@ -221,7 +221,15 @@ async function fetchDomainHistory(domain) {
 }
 
 function renderDomainHistoryChart(historyData, currentDomain) {
+  const chartContainer = document.querySelector('.chart-container');
   const ctx = document.getElementById('historyChart').getContext('2d');
+
+  if (historyData.length === 0) {
+    chartContainer.style.display = 'none';
+    return;
+  }
+
+  chartContainer.style.display = 'block';
 
   // Prepare data for the chart
   const labels = historyData.map(entry => new Date(entry.date).toLocaleDateString());
@@ -407,7 +415,9 @@ async function fetchUserHistory() {
     }
     const historyData = await response.json();
     console.log('User history data received:', historyData);
-    // You can add logic here to display overall user history if needed
+    if (historyData.length > 0) {
+      renderDomainHistoryChart(historyData, historyData[0].domain);
+    }
     displaySearchHistory(historyData);
   } catch (error) {
     console.error('Error fetching user history:', error);
@@ -579,6 +589,7 @@ function updateUIForLoggedInUser() {
   document.getElementById('login-form').style.display = 'none';
   document.getElementById('post-login-content').style.display = 'block';
   document.getElementById('brand-analysis').style.display = 'block';
+  document.querySelector('.chart-container').style.display = 'none'; // Hide chart container initially
   fetchUserHistory();
   setupCollapsible();
 }

@@ -18,7 +18,7 @@ async function queryAPIForService(domain, userDescription) {
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: servicePrompt }],
       temperature: 0.3,
       max_tokens: 50,
@@ -55,7 +55,7 @@ export default authenticate(async function handler(req, res) {
     const websitesPrompt = `Based on the domain "${domain}", the user's description "${userDescription}", and the identified service "${service}", list the top 10 most popular and reputable websites that might directly compete with this domain. Provide only the domain names, separated by newlines, starting with the most prominent competitor.`;
 
     const websitesResponse = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You are a knowledgeable AI assistant with expertise in identifying top competitors in various industries based on domain names and services.' },
         { role: 'user', content: websitesPrompt }
