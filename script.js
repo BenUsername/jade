@@ -212,7 +212,7 @@ async function fetchDomainHistory(domain) {
 
     const historyData = await response.json();
     console.log('Domain history data received:', historyData);
-    renderDomainHistoryChart(historyData, domain);
+    renderDomainHistoryChart(historyData, domain);  // Pass domain as second argument
     displaySearchHistory(historyData);
   } catch (error) {
     console.error('Error fetching domain history:', error);
