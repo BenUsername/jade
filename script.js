@@ -226,6 +226,41 @@ async function fetchDomainHistory(domain) {
   }
 }
 
+function getColorScheme(index) {
+  const colorSchemes = [
+    'rgb(255, 99, 132)',   // Red
+    'rgb(54, 162, 235)',   // Blue
+    'rgb(255, 206, 86)',   // Yellow
+    'rgb(75, 192, 192)',   // Green
+    'rgb(153, 102, 255)',  // Purple
+    'rgb(255, 159, 64)',   // Orange
+    'rgb(199, 199, 199)',  // Gray
+    'rgb(83, 102, 255)',   // Indigo
+    'rgb(255, 99, 255)',   // Pink
+    'rgb(159, 159, 64)'    // Olive
+  ];
+  return colorSchemes[index % colorSchemes.length];
+}
+
+function createLegendButtons(competitors, chart) {
+  const legendContainer = document.getElementById('legend-container');
+  legendContainer.innerHTML = '';
+  competitors.forEach((competitor, index) => {
+    const button = document.createElement('button');
+    button.classList.add('btn', 'btn-sm', 'm-1');
+    button.style.backgroundColor = getColorScheme(index);
+    button.style.color = 'white';
+    button.textContent = competitor;
+    button.onclick = () => {
+      const datasetIndex = chart.data.datasets.findIndex(d => d.label === competitor);
+      chart.setDatasetVisibility(datasetIndex, !chart.isDatasetVisible(datasetIndex));
+      chart.update();
+      button.classList.toggle('active');
+    };
+    legendContainer.appendChild(button);
+  });
+}
+
 function renderDomainHistoryChart(historyData, currentDomain) {
   console.log('Attempting to render chart for domain:', currentDomain);
   const chartContainer = document.querySelector('.chart-container');
@@ -280,12 +315,13 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     datasets.push({
       label: competitor,
       data: data,
-      borderColor: getColor(index, isCurrentDomain ? '1' : '0.7'),
-      backgroundColor: getColor(index, isCurrentDomain ? '0.2' : '0'),
+      borderColor: getColorScheme(index),
+      backgroundColor: getColorScheme(index) + '20',
       fill: false,
-      borderWidth: isCurrentDomain ? 3 : 1,
+      borderWidth: isCurrentDomain ? 3 : 2,
       pointRadius: isCurrentDomain ? 5 : 3,
       pointHoverRadius: 8,
+      hidden: index >= 5 && !isCurrentDomain, // Hide datasets beyond top 5 initially
     });
   });
 
@@ -328,7 +364,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
         },
         plugins: {
           legend: {
-            position: 'top',
+            display: false,
           },
           tooltip: {
             mode: 'index',
@@ -356,6 +392,8 @@ function renderDomainHistoryChart(historyData, currentDomain) {
         },
       },
     });
+
+    createLegendButtons(topCompetitors, window.userHistoryChart);
 
     console.log('Chart rendered successfully');
   } catch (error) {
