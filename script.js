@@ -613,11 +613,11 @@ function setupCollapsible() {
 
 // Modify the displaySearchHistory function
 function displaySearchHistory(historyData) {
-  const historyContent = document.querySelector('#search-history .content');
+  const historyContent = document.getElementById('search-history-content');
   historyContent.innerHTML = ''; // Clear existing content
   
   const table = document.createElement('table');
-  table.className = 'table';
+  table.className = 'table table-striped';
   table.innerHTML = `
     <thead>
       <tr>
@@ -627,13 +627,13 @@ function displaySearchHistory(historyData) {
       </tr>
     </thead>
     <tbody>
-      ${historyData.map(entry => `
-        <tr>
+      ${historyData.map(entry => 
+        `<tr>
           <td>${new Date(entry.date).toLocaleString()}</td>
           <td>${entry.domain}</td>
           <td>${entry.service}</td>
-        </tr>
-      `).join('')}
+        </tr>`
+      ).join('')}
     </tbody>
   `;
   
@@ -764,26 +764,13 @@ function displaySearchHistory(historyData) {
       </tr>
     </thead>
     <tbody>
-      ${historyData.map(entry => `
-        <tr>
+      ${historyData.map(entry => 
+        `<tr>
           <td>${new Date(entry.date).toLocaleString()}</td>
           <td>${entry.domain}</td>
           <td>${entry.service}</td>
-        </tr>
-      `).join('')}
-    </tbody>
-  `;
-  
-  historyContent.appendChild(table);
-}
-
-      ${historyData.map(entry => `
-        <tr>
-          <td>${new Date(entry.date).toLocaleString()}</td>
-          <td>${entry.domain}</td>
-          <td>${entry.service}</td>
-        </tr>
-      `).join('')}
+        </tr>`
+      ).join('')}
     </tbody>
   `;
   
