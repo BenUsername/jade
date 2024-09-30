@@ -20,14 +20,14 @@ function isValidDomain(domain) {
 }
 
 async function queryClaudeForService(domain) {
-  const prompt = `Please visit the website ${domain} and analyze its content. What is the primary service or industry sector of this website? Provide a concise, specific answer in 10 words or less.`;
+  const prompt = `Please analyze the domain "${domain}". What is the primary service or industry sector of this website? Provide a concise, specific answer in 10 words or less.`;
 
   try {
     const message = await anthropic.messages.create({
       model: "claude-3-sonnet-20240229",
       max_tokens: 100,
       temperature: 0.3,
-      system: "You are an AI assistant specialized in analyzing websites and determining their primary services or industry sectors.",
+      system: "You are an AI assistant specialized in analyzing website domains and determining their primary services or industry sectors.",
       messages: [
         {
           role: "user",
