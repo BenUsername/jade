@@ -52,7 +52,7 @@ export default authenticate(async function handler(req, res) {
     const service = await queryAPIForService(domain, userDescription);
 
     // Get competitors using API
-    const websitesPrompt = `Based on the domain "${domain}", the user's description "${userDescription}", and the identified service "${service}", list the top 5 most popular and reputable websites that might directly compete with this domain. Provide only the domain names, separated by newlines, starting with the most prominent competitor.`;
+    const websitesPrompt = `Based on the domain "${domain}", the user's description "${userDescription}", and the identified service "${service}", list the top 10 most popular and reputable websites that might directly compete with this domain. Provide only the domain names, separated by newlines, starting with the most prominent competitor.`;
 
     const websitesResponse = await openai.chat.completions.create({
       model: 'gpt-4',
@@ -61,7 +61,7 @@ export default authenticate(async function handler(req, res) {
         { role: 'user', content: websitesPrompt }
       ],
       temperature: 0.7,
-      max_tokens: 100,
+      max_tokens: 200, // Increased to accommodate more competitors
     });
 
     const rankings = websitesResponse.choices[0].message.content.trim()

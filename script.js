@@ -181,9 +181,12 @@ function displayResults(data) {
     <p>Identified Service: ${data.service}</p>
     <h3>Top Competitors:</h3>
     <ol>
-      ${data.rankings.map(rank => `<li>${rank}</li>`).join('')}
+      ${data.rankings.map(rank => `<li>${rank}${rank === data.domain ? ' (You)' : ''}</li>`).join('')}
     </ol>
   `;
+  
+  // Fetch and display history for this domain
+  fetchDomainHistory(data.domain);
 }
 
 // Update other functions to use 'domain' instead of 'brand'
@@ -311,20 +314,35 @@ function renderDomainHistoryChart(historyData) {
   const labels = historyData.map(entry => new Date(entry.date).toLocaleDateString());
   const datasets = [];
 
-  // Assuming each entry contains rankings
-  const competitors = [...new Set(historyData.flatMap(entry => entry.rankings))];
+  // Get all unique competitors across all entries
+  const allCompetitors = [...new Set(historyData.flatMap(entry => entry.rankings))];
 
-  competitors.forEach((competitor, index) => {
+  // Sort competitors by their average ranking
+  const sortedCompetitors = allCompetitors.sort((a, b) => {
+    const avgRankA = historyData.reduce((sum, entry) => sum + (entry.rankings.indexOf(a) + 1 || 11), 0) / historyData.length;
+    const avgRankB = historyData.reduce((sum, entry) => sum + (entry.rankings.indexOf(b) + 1 || 11), 0) / historyData.length;
+    return avgRankA - avgRankB;
+  });
+
+  // Take top 10 competitors
+  const topCompetitors = sortedCompetitors.slice(0, 10);
+
+  topCompetitors.forEach((competitor, index) => {
     const data = historyData.map(entry => {
       const rank = entry.rankings.indexOf(competitor);
       return rank !== -1 ? rank + 1 : null; // Rank positions start from 1
     });
 
+    const isUserDomain = competitor === historyData[0].domain;
+
     datasets.push({
       label: competitor,
       data: data,
-      borderColor: getColor(index, '1'),
-      fill: false,
+      borderColor: getColor(index, isUserDomain ? '1' : '0.7'),
+      backgroundColor: getColor(index, isUserDomain ? '0.2' : '0'),
+      fill: isUserDomain,
+      borderWidth: isUserDomain ? 3 : 1,
+      pointRadius: isUserDomain ? 5 : 3,
     });
   });
 
@@ -344,9 +362,13 @@ function renderDomainHistoryChart(historyData) {
       scales: {
         y: {
           reverse: true,
+          min: 1,
+          max: 10,
           ticks: {
             stepSize: 1,
-            precision: 0,
+            callback: function(value) {
+              return value > 10 ? '' : value.toString();
+            }
           },
           title: {
             display: true,
@@ -354,6 +376,23 @@ function renderDomainHistoryChart(historyData) {
           },
         },
       },
+      plugins: {
+        legend: {
+          position: 'right',
+        },
+        tooltip: {
+          callbacks: {
+            title: function(tooltipItems) {
+              return `Date: ${tooltipItems[0].label}`;
+            },
+            label: function(context) {
+              const label = context.dataset.label;
+              const value = context.parsed.y;
+              return `${label}: ${value === null ? 'Not in top 10' : `Rank ${value}`}`;
+            }
+          }
+        }
+      }
     },
   });
 }
