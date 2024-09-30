@@ -64,7 +64,7 @@ async function queryTopPrompts(domain, prompts) {
         { role: "user", content: prompt }
       ],
       max_tokens: 10,
-      temperature: 0.7,
+      temperature: 0,
     });
 
     const response = completion.choices[0].message.content.trim();
@@ -82,7 +82,7 @@ async function scoreResponse(domain, response) {
       { role: "user", content: `On a scale of 0 to 10, how well does the domain "${domain}" rank in this response? Only provide a number as your answer.\n\nResponse: ${response}` }
     ],
     max_tokens: 5,
-    temperature: 0.3,
+    temperature: 0,
   });
 
   const score = parseInt(completion.choices[0].message.content.trim());
