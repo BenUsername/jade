@@ -167,22 +167,7 @@ document.getElementById('brand-form').addEventListener('submit', async function 
   document.getElementById('result').innerHTML = '';
 
   try {
-    const response = await fetchWithAuth('/api/query-llm', {
-      method: 'POST',
-      body: JSON.stringify({ domain }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 504) {
-        throw new Error('The request took too long to process. Please try again.');
-      }
-      throw new Error(await response.text());
-    }
-
-    const data = await response.json();
-    displayResults(data);
-    // Fetch and display history for this specific domain
-    await fetchDomainHistory(domain);
+    await analyzeDomain(domain);
   } catch (error) {
     console.error('Error:', error);
     toastr.error(`An unexpected error occurred: ${error.message}`);
@@ -190,6 +175,44 @@ document.getElementById('brand-form').addEventListener('submit', async function 
     document.getElementById('loading').style.display = 'none';
   }
 });
+
+async function analyzeDomain(domain) {
+  const response = await fetchWithAuth('/api/query-llm', {
+    method: 'POST',
+    body: JSON.stringify({ domain }),
+  });
+
+  if (response.status === 202) {
+    // Start polling for results
+    pollForResults(domain);
+  } else if (!response.ok) {
+    throw new Error(await response.text());
+  } else {
+    const data = await response.json();
+    displayResults(data);
+  }
+}
+
+async function pollForResults(domain) {
+  const resultDiv = document.getElementById('result');
+  resultDiv.innerHTML = 'Analysis in progress...';
+
+  const checkResults = async () => {
+    const response = await fetchWithAuth(`/api/get-results?domain=${encodeURIComponent(domain)}`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.status === 'completed') {
+        displayResults(data);
+      } else {
+        setTimeout(checkResults, 5000); // Check again in 5 seconds
+      }
+    } else {
+      resultDiv.innerHTML = 'Error checking results. Please try again.';
+    }
+  };
+
+  checkResults();
+}
 
 function displayResults(data) {
   const resultDiv = document.getElementById('result');

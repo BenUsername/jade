@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import dbConnect from '../lib/dbConnect';
 import RankingHistory from '../models/RankingHistory';
 import https from 'https';
+import { Queue } from 'bullmq';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -103,6 +104,8 @@ async function scoreResponse(domain, response) {
   return isNaN(score) ? 0 : score;
 }
 
+const myQueue = new Queue('myQueue');
+
 export default authenticate(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -120,31 +123,30 @@ export default authenticate(async function handler(req, res) {
   }
 
   try {
-    // Fetch web content
     const webContent = await fetchWebContent(domain);
+    res.status(202).json({ message: "Content fetched. Starting analysis." });
 
-    // Generate keyword prompts
-    const keywordPrompts = await generateKeywordPrompts(domain, webContent);
-
-    // Query top 5 prompts and get results
-    const topPromptsResults = await queryTopPrompts(domain, keywordPrompts);
-
-    // Save the result to the database
-    await dbConnect();
-    const rankingHistory = new RankingHistory({
-      userId,
-      domain,
-      keywordPrompts,
-      topPromptsResults,
-      date: new Date(),
-      service: 'Not specified', // Add a default value for the service field
-    });
-    await rankingHistory.save();
-
-    res.status(200).json({ domain, keywordPrompts, topPromptsResults });
-
+    // Start analysis in background
+    analyzeContent(domain, webContent, userId).catch(console.error);
   } catch (error) {
     console.error('Error processing request:', error);
-    res.status(500).json({ error: 'Failed to process request', details: error.message });
+    res.status(500).json({ error: 'Failed to fetch content', details: error.message });
   }
 });
+
+async function analyzeContent(domain, webContent, userId) {
+  const keywordPrompts = await generateKeywordPrompts(domain, webContent);
+  const topPromptsResults = await queryTopPrompts(domain, keywordPrompts);
+
+  // Save results to database
+  await dbConnect();
+  const rankingHistory = new RankingHistory({
+    userId,
+    domain,
+    keywordPrompts,
+    topPromptsResults,
+    date: new Date(),
+    service: 'Not specified',
+  });
+  await rankingHistory.save();
+}

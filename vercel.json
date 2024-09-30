@@ -1,0 +1,7 @@
+{
+    "functions": {
+      "api/query-llm.js": {
+        "maxDuration": 60
+      }
+    }
+  }
