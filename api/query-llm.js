@@ -33,13 +33,11 @@ async function queryAPIForService(domain, userDescription) {
 
 async function generateKeywordPrompts(domain, userDescription) {
   const completion = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
+    model: "gpt-4o-mini",
     messages: [
       { role: "system", content: "You are a helpful assistant." },
-      { role: "user", content: `Generate 20 keyword prompts for the domain ${domain} based on this description: ${userDescription}` }
+      { role: "user", content: `Based on the content you see on "${domain}", please tell me the top 20 prompts where you think this company would like to rank first. To be more specific, imagine you are the CMO of this company and you would like to see how well you rank on natural language tool's SEO. What would be the 20 prompts you would test first?`}
     ],
-    // Remove the timeout parameter if it exists
-    // timeout: 60000, // Remove this line
   });
 
   const keywordPrompts = completion.choices[0].message.content.trim()
