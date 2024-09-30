@@ -31,6 +31,29 @@ async function queryAPIForService(domain, userDescription) {
   }
 }
 
+async function generateKeywordPrompts(domain) {
+  const prompt = `Based on the content you see on ${domain}, please tell me the top 20 prompts where you think this company would like to rank first. To be more specific, imagine you are the CMO of this company and you would like to see how well you rank on natural language tool's SEO. What would be the 20 prompts you would test first?`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 500,
+    });
+
+    const keywordPrompts = response.choices[0].message.content.trim()
+      .split('\n')
+      .map(prompt => prompt.replace(/^\d+\.\s*/, '').trim())
+      .filter(prompt => prompt !== '');
+
+    return keywordPrompts;
+  } catch (error) {
+    console.error('Error generating keyword prompts:', error);
+    throw error;
+  }
+}
+
 export default authenticate(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -55,7 +78,7 @@ export default authenticate(async function handler(req, res) {
     const websitesPrompt = `Based on the domain "${domain}", the user's description "${userDescription}", and the identified service "${service}", list the top 10 most popular and reputable websites that might directly compete with this domain. Provide only the domain names, separated by newlines, starting with the most prominent competitor.`;
 
     const websitesResponse = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4',
       messages: [
         { role: 'system', content: 'You are a knowledgeable AI assistant with expertise in identifying top competitors in various industries based on domain names and services.' },
         { role: 'user', content: websitesPrompt }
@@ -69,6 +92,9 @@ export default authenticate(async function handler(req, res) {
       .map((item) => item.replace(/^\d+\.\s*/, '').trim())
       .filter((item) => item !== '');
 
+    // Generate keyword prompts
+    const keywordPrompts = await generateKeywordPrompts(domain);
+
     // Save the result to the database
     await dbConnect();
     const rankingHistory = new RankingHistory({
@@ -77,11 +103,12 @@ export default authenticate(async function handler(req, res) {
       userDescription,
       service,
       rankings,
+      keywordPrompts,
       date: new Date(),
     });
     await rankingHistory.save();
 
-    res.status(200).json({ domain, userDescription, service, rankings });
+    res.status(200).json({ domain, userDescription, service, rankings, keywordPrompts });
 
   } catch (error) {
     console.error('Error processing request:', error);

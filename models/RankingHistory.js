@@ -6,6 +6,7 @@ const RankingHistorySchema = new mongoose.Schema({
   userDescription: { type: String, required: true },
   service: { type: String, required: true },
   rankings: { type: [String], required: true },
+  keywordPrompts: { type: [String], required: true },
   date: { type: Date, default: Date.now },
 });
 

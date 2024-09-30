@@ -199,6 +199,23 @@ function displayResults(data) {
     <ol>
       ${data.rankings.map(rank => `<li>${rank}${rank === data.domain ? ' (You)' : ''}</li>`).join('')}
     </ol>
+    <h3>Top 20 Keyword Prompts:</h3>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Prompt</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.keywordPrompts.map((prompt, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${prompt}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
   `;
 }
 
