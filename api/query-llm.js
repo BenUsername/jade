@@ -60,7 +60,7 @@ ${webContent.substring(0, 3000)} // Limit to first 3000 characters
 
 Please tell me the top 20 prompts where you think this company would like to rank first. To be more specific, imagine you are the CMO of this company and you would like to see how well you rank on natural language tool's SEO. What would be the 20 prompts you would test first? Do not introduce yourself, give me the list straight`}
     ],
-    max_tokens: 50,
+    max_tokens: 20,
     temperature: 0,
   });
 
