@@ -110,12 +110,7 @@ if (loginForm) {
         toastr.success('Login successful!');
         authToken = data.token;
         localStorage.setItem('authToken', data.token);
-        document.getElementById('registration-form').style.display = 'none';
-        document.getElementById('login-form').style.display = 'none';
-        document.getElementById('post-login-content').style.display = 'block';
-        console.log('Login successful, UI updated');
-        fetchUserHistory();
-        setupCollapsible(); // Set up collapsible elements
+        updateUIForLoggedInUser();
       } else {
         toastr.error(`Error: ${data.error}`);
         console.log('Login error:', data.error);
@@ -253,14 +248,8 @@ async function fetchDomainHistory(domain) {
 document.addEventListener('DOMContentLoaded', () => {
   authToken = localStorage.getItem('authToken');
   if (authToken) {
-    // User is already logged in
-    document.getElementById('registration-form').style.display = 'none';
-    document.getElementById('login-form').style.display = 'none';
-    document.getElementById('post-login-content').style.display = 'block';
-    fetchUserHistory();
-    setupCollapsible(); // Set up collapsible elements
+    updateUIForLoggedInUser();
   } else {
-    // User is not logged in
     document.getElementById('registration-form').style.display = 'block';
     document.getElementById('login-form').style.display = 'block';
     document.getElementById('post-login-content').style.display = 'none';
@@ -449,4 +438,14 @@ function displaySearchHistory(historyData) {
   `;
   
   historyContent.appendChild(table);
+}
+
+// Modify or add this function to ensure proper display on page load
+function updateUIForLoggedInUser() {
+  document.getElementById('registration-form').style.display = 'none';
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('post-login-content').style.display = 'block';
+  document.getElementById('brand-analysis').style.display = 'block';
+  fetchUserHistory();
+  setupCollapsible();
 }
