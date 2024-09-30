@@ -247,7 +247,7 @@ function createLegendButtons(competitors, chart) {
   legendContainer.innerHTML = '';
   competitors.forEach((competitor, index) => {
     const button = document.createElement('button');
-    button.classList.add('btn', 'btn-sm', 'm-1');
+    button.classList.add('btn', 'btn-sm', 'm-1', 'chart-legend-item');
     button.style.backgroundColor = getColorScheme(index);
     button.style.color = 'white';
     button.textContent = competitor;
@@ -255,7 +255,7 @@ function createLegendButtons(competitors, chart) {
       const datasetIndex = chart.data.datasets.findIndex(d => d.label === competitor);
       chart.setDatasetVisibility(datasetIndex, !chart.isDatasetVisible(datasetIndex));
       chart.update();
-      button.classList.toggle('active');
+      button.classList.toggle('hidden');
     };
     legendContainer.appendChild(button);
   });
@@ -321,7 +321,6 @@ function renderDomainHistoryChart(historyData, currentDomain) {
       borderWidth: isCurrentDomain ? 3 : 2,
       pointRadius: isCurrentDomain ? 5 : 3,
       pointHoverRadius: 8,
-      hidden: index >= 5 && !isCurrentDomain, // Hide datasets beyond top 5 initially
     });
   });
 
@@ -366,6 +365,15 @@ function renderDomainHistoryChart(historyData, currentDomain) {
           legend: {
             display: false,
           },
+          dataselector: {
+            display: true,
+            filter: null,
+            usePointStyle: true,
+            position: 'bottom',
+            labels: {
+              usePointStyle: true,
+            },
+          },
           tooltip: {
             mode: 'index',
             intersect: false,
@@ -400,6 +408,36 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     console.error('Error rendering chart:', error);
   }
 }
+
+// Add CSV export functionality
+document.getElementById('exportCsv').addEventListener('click', function() {
+  if (window.userHistoryChart) {
+    const csvData = [
+      ['Date', ...window.userHistoryChart.data.datasets.map(ds => ds.label)]
+    ];
+
+    window.userHistoryChart.data.labels.forEach((label, index) => {
+      const row = [label];
+      window.userHistoryChart.data.datasets.forEach(ds => {
+        row.push(ds.data[index]);
+      });
+      csvData.push(row);
+    });
+
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'ranking_history.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }
+});
 
 // Update other functions to use 'domain' instead of 'brand'
 function displayServiceAndRankings(domain, service, rankings) {
