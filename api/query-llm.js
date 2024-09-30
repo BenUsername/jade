@@ -64,7 +64,7 @@ ${webContent.substring(0, 3000)} // Limit to first 3000 characters
 
 Please tell me the top 20 prompts where you think this company would like to rank first. To be more specific, imagine you are the CMO of this company and you would like to see how well you rank on natural language tool's SEO. What would be the 20 prompts you would test first?`}
     ],
-    max_tokens: 100,
+    max_tokens: 50,
     temperature: 0,
   });
 
@@ -109,7 +109,7 @@ export default authenticate(async function handler(req, res) {
         { role: 'user', content: websitesPrompt }
       ],
       temperature: 0.7,
-      max_tokens: 200,
+      max_tokens: 50,
     });
 
     const rankings = websitesResponse.choices[0].message.content.trim()
