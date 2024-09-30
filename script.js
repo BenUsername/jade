@@ -65,7 +65,9 @@ document.getElementById('register-form').addEventListener('submit', async functi
 
     const data = await response.json();
     if (response.ok) {
-      toastr.success('Registration successful! You can now log in.');
+      toastr.success(data.message || 'Registration successful! You can now log in.');
+      // Clear the form
+      document.getElementById('register-form').reset();
     } else {
       toastr.error(`Error: ${data.error}`);
     }

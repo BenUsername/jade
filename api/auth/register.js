@@ -57,7 +57,11 @@ module.exports = async (req, res) => {
       password: hashedPassword,
     });
 
-    // After saving the user
+    // Save the user
+    await user.save();
+
+    console.log('User registered successfully:', user);
+
     res.status(200).json({ message: 'Registration successful!' });
   } catch (error) {
     console.error('Registration error:', error);
