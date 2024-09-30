@@ -157,10 +157,9 @@ document.getElementById('brand-form').addEventListener('submit', async function 
   e.preventDefault();
 
   const domain = document.getElementById('domain-input').value.trim();
-  const userDescription = document.getElementById('user-description-input').value.trim();
 
-  if (!domain || !userDescription) {
-    toastr.error('Please fill in both fields');
+  if (!domain) {
+    toastr.error('Please enter a domain');
     return;
   }
 
@@ -170,7 +169,7 @@ document.getElementById('brand-form').addEventListener('submit', async function 
   try {
     const response = await fetchWithAuth('/api/query-llm', {
       method: 'POST',
-      body: JSON.stringify({ domain, userDescription }),
+      body: JSON.stringify({ domain }),
     });
 
     if (!response.ok) {
@@ -196,12 +195,6 @@ function displayResults(data) {
   const resultDiv = document.getElementById('result');
   resultDiv.innerHTML = `
     <h2>Results for ${data.domain}</h2>
-    <p>Your description: ${data.userDescription}</p>
-    <p>Identified Service: ${data.service}</p>
-    <h3>Top Competitors:</h3>
-    <ol>
-      ${data.rankings.map(rank => `<li>${rank}${rank === data.domain ? ' (You)' : ''}</li>`).join('')}
-    </ol>
     <h3>Top 20 Keyword Prompts:</h3>
     <table class="table table-striped">
       <thead>
