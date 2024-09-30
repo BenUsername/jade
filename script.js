@@ -143,54 +143,48 @@ document.getElementById('brand-form').addEventListener('submit', async function 
   e.preventDefault();
 
   const domain = document.getElementById('domain-input').value.trim();
-  if (!domain) {
-    toastr.error('Please enter a domain');
+  const userDescription = document.getElementById('user-description-input').value.trim();
+
+  if (!domain || !userDescription) {
+    toastr.error('Please fill in both fields');
     return;
   }
 
-  if (!isValidDomain(domain)) {
-    toastr.error('Please enter a valid domain (e.g., example.com)');
-    return;
-  }
-
-  const resultDiv = document.getElementById('result');
-  resultDiv.innerHTML = ''; // Clear previous results
-  document.getElementById('loading').style.display = 'block'; // Show loading spinner
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('result').innerHTML = '';
 
   try {
-    // Call the API endpoint
     const response = await fetchWithAuth('/api/query-llm', {
       method: 'POST',
-      body: JSON.stringify({ domain }),
+      body: JSON.stringify({ domain, userDescription }),
     });
 
     if (!response.ok) {
-      if (response.status === 401) {
-        // Handle unauthorized error
-        localStorage.removeItem('authToken');
-        window.location.reload(); // Reload the page to show login form
-        return;
-      }
-      const errorText = await response.text();
-      throw new Error(errorText);
+      throw new Error(await response.text());
     }
 
     const data = await response.json();
-
-    // Display the service and rankings
-    displayServiceAndRankings(data.domain, data.service, data.rankings);
-
-    // Fetch and display history for this domain
-    await fetchDomainHistory(data.domain);
-
+    displayResults(data);
   } catch (error) {
     console.error('Error:', error);
     toastr.error(`An unexpected error occurred: ${error.message}`);
-    resultDiv.innerHTML = '<p>An unexpected error occurred.</p>';
   } finally {
-    document.getElementById('loading').style.display = 'none'; // Hide loading spinner
+    document.getElementById('loading').style.display = 'none';
   }
 });
+
+function displayResults(data) {
+  const resultDiv = document.getElementById('result');
+  resultDiv.innerHTML = `
+    <h2>Results for ${data.domain}</h2>
+    <p>Your description: ${data.userDescription}</p>
+    <p>Identified Service: ${data.service}</p>
+    <h3>Top Competitors:</h3>
+    <ol>
+      ${data.rankings.map(rank => `<li>${rank}</li>`).join('')}
+    </ol>
+  `;
+}
 
 // Update other functions to use 'domain' instead of 'brand'
 function displayServiceAndRankings(domain, service, rankings) {

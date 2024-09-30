@@ -17,7 +17,9 @@
     "next-auth": "^4.24.8",
     "node-fetch": "^2.7.0",
     "openai": "^4.0.0",
-    "validator": "^13.12.0"
+    "validator": "^13.12.0",
+    "@google-ai/generativelanguage": "^1.1.0",
+    "google-auth-library": "^9.0.0"
   },
   "devDependencies": {
     "parcel": "^2.12.0"

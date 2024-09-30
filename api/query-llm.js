@@ -1,16 +1,10 @@
 import authenticate from '../middleware/auth';
 import OpenAI from 'openai';
-import Anthropic from '@anthropic-ai/sdk';
 import dbConnect from '../lib/dbConnect';
 import RankingHistory from '../models/RankingHistory';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 // Function to validate domain
@@ -19,26 +13,20 @@ function isValidDomain(domain) {
   return domainRegex.test(domain);
 }
 
-async function queryClaudeForService(domain) {
-  const prompt = `Please analyze the domain "${domain}". What is the primary service or industry sector of this website? Provide a concise, specific answer in 10 words or less.`;
+async function queryAPIForService(domain, userDescription) {
+  const servicePrompt = `Given the domain "${domain}" and the user's description of what they do: "${userDescription}", what is the most likely primary service or industry sector of this website? Provide a concise, specific answer in 10 words or less.`;
 
   try {
-    const message = await anthropic.messages.create({
-      model: "claude-3-sonnet-20240229",
-      max_tokens: 100,
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [{ role: 'user', content: servicePrompt }],
       temperature: 0.3,
-      system: "You are an AI assistant specialized in analyzing website domains and determining their primary services or industry sectors.",
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ]
+      max_tokens: 50,
     });
 
-    return message.content[0].text;
+    return response.choices[0].message.content.trim();
   } catch (error) {
-    console.error('Error querying Claude:', error);
+    console.error('Error querying API:', error);
     throw error;
   }
 }
@@ -48,11 +36,11 @@ export default authenticate(async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
-  const { domain } = req.body;
+  const { domain, userDescription } = req.body;
   const userId = req.userId;
 
-  if (!domain) {
-    return res.status(400).json({ error: 'Domain is required' });
+  if (!domain || !userDescription) {
+    return res.status(400).json({ error: 'Domain and user description are required' });
   }
 
   if (!isValidDomain(domain)) {
@@ -60,11 +48,11 @@ export default authenticate(async function handler(req, res) {
   }
 
   try {
-    // Step 1: Determine the service provided by the website using Claude
-    const service = await queryClaudeForService(domain);
+    // Get service from API
+    const service = await queryAPIForService(domain, userDescription);
 
-    // Step 2: Get the best websites for that service using OpenAI
-    const websitesPrompt = `Based on the domain "${domain}" and its service as "${service}", list the top 5 most popular and reputable websites that might directly compete with this domain. Provide only the domain names, separated by newlines, starting with the most prominent competitor.`;
+    // Get competitors using API
+    const websitesPrompt = `Based on the domain "${domain}", the user's description "${userDescription}", and the identified service "${service}", list the top 5 most popular and reputable websites that might directly compete with this domain. Provide only the domain names, separated by newlines, starting with the most prominent competitor.`;
 
     const websitesResponse = await openai.chat.completions.create({
       model: 'gpt-4',
@@ -76,9 +64,7 @@ export default authenticate(async function handler(req, res) {
       max_tokens: 100,
     });
 
-    const rankingsText = websitesResponse.choices[0].message.content.trim();
-
-    const rankings = rankingsText
+    const rankings = websitesResponse.choices[0].message.content.trim()
       .split('\n')
       .map((item) => item.replace(/^\d+\.\s*/, '').trim())
       .filter((item) => item !== '');
@@ -88,16 +74,34 @@ export default authenticate(async function handler(req, res) {
     const rankingHistory = new RankingHistory({
       userId,
       domain,
+      userDescription,
       service,
       rankings,
       date: new Date(),
     });
     await rankingHistory.save();
 
-    res.status(200).json({ domain, service, rankings });
+    res.status(200).json({ domain, userDescription, service, rankings });
 
   } catch (error) {
     console.error('Error processing request:', error);
     res.status(500).json({ error: 'Failed to process request' });
   }
 });
+
+// Add a new endpoint to receive browser results
+export async function receiveBrowserResult(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { result } = req.body;
+
+  if (!result) {
+    return res.status(400).json({ error: 'Result is required' });
+  }
+
+  // Store the result or process it as needed
+  // For now, we'll just return it
+  res.status(200).json({ success: true, browserResult: result });
+}

@@ -113,16 +113,14 @@
     <div id="brand-analysis" class="mt-5" style="display: none;">
       <form id="brand-form">
         <div class="mb-3">
-          <label for="domain-input" class="form-label">Website Domain</label>
-          <input
-            type="text"
-            class="form-control"
-            id="domain-input"
-            placeholder="Enter a website domain (e.g., example.com)"
-            required
-          />
+          <label for="domain-input" class="form-label">Domain</label>
+          <input type="text" class="form-control" id="domain-input" placeholder="Enter domain" required>
         </div>
-        <button type="submit" class="btn btn-primary">Analyze Website</button>
+        <div class="mb-3">
+          <label for="user-description-input" class="form-label">What do you do?</label>
+          <input type="text" class="form-control" id="user-description-input" placeholder="Briefly describe what you do" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Analyze</button>
       </form>
       <!-- Loading Spinner -->
       <div id="loading" class="text-center mt-3" style="display: none;">
