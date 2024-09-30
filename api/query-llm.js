@@ -1,10 +1,5 @@
-import authenticate from '../middleware/auth';
 import OpenAI from 'openai';
-import dbConnect from '../lib/dbConnect';
-import RankingHistory from '../models/RankingHistory';
-import https from 'https';
-import { JSDOM } from 'jsdom';
-import puppeteer from 'puppeteer';
+import fetch from 'node-fetch';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -17,25 +12,22 @@ function isValidDomain(domain) {
 }
 
 async function fetchWebContent(domain) {
-  const browser = await puppeteer.launch({ headless: 'new' });
-  const page = await browser.newPage();
-  await page.goto(`https://${domain}`, { waitUntil: 'networkidle0' });
-
-  const content = await page.evaluate(() => {
-    const articleContent = document.querySelector('article') || document.querySelector('main') || document.body;
-    return articleContent.innerText;
-  });
-
-  await browser.close();
-
-  // Split content into chunks of 1000 characters each
-  const chunks = content.match(/.{1,1000}/g) || [];
-  return chunks.slice(0, 6).join('\n\n'); // Return up to 6 chunks (6000 characters)
+  try {
+    const response = await fetch(`https://${domain}`);
+    const html = await response.text();
+    const textContent = html.replace(/<[^>]*>/g, ' ')
+                            .replace(/\s+/g, ' ')
+                            .trim();
+    return textContent.substring(0, 6000);
+  } catch (error) {
+    console.error('Error fetching web content:', error);
+    throw new Error(`Error fetching content for ${domain}: ${error.message}`);
+  }
 }
 
 async function generateKeywordPrompts(domain, webContent) {
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-4",
     messages: [
       { role: "system", content: "You are an AI expert in SEO and content analysis." },
       { role: "user", content: `Analyze the following web content from "${domain}":
@@ -65,7 +57,7 @@ async function queryTopPrompts(domain, prompts) {
   const results = [];
   for (const prompt of prompts.slice(0, 5)) {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4",
       messages: [
         { role: "system", content: "You are a helpful assistant." },
         { role: "user", content: prompt }
@@ -83,7 +75,7 @@ async function queryTopPrompts(domain, prompts) {
 
 async function scoreResponse(domain, response) {
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-4",
     messages: [
       { role: "system", content: "You are an SEO expert assistant." },
       { role: "user", content: `On a scale of 0 to 10, how well does the domain "${domain}" rank in this response? Only provide a number as your answer.\n\nResponse: ${response}` }
@@ -96,13 +88,12 @@ async function scoreResponse(domain, response) {
   return isNaN(score) ? 0 : score;
 }
 
-export default authenticate(async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
   const { domain } = req.body;
-  const userId = req.userId;
 
   if (!domain) {
     return res.status(400).json({ error: 'Domain is required' });
@@ -122,22 +113,10 @@ export default authenticate(async function handler(req, res) {
     // Query top 5 prompts and get results
     const topPromptsResults = await queryTopPrompts(domain, keywordPrompts);
 
-    // Save the result to the database
-    await dbConnect();
-    const rankingHistory = new RankingHistory({
-      userId,
-      domain,
-      keywordPrompts,
-      topPromptsResults,
-      date: new Date(),
-      service: 'Not specified',
-    });
-    await rankingHistory.save();
-
     res.status(200).json({ domain, keywordPrompts, topPromptsResults });
 
   } catch (error) {
     console.error('Error processing request:', error);
     res.status(500).json({ error: 'Failed to process request', details: error.message });
   }
-});
+}
