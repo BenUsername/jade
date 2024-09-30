@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import dbConnect from '../lib/dbConnect';
 import RankingHistory from '../models/RankingHistory';
 import https from 'https';
+import { JSDOM } from 'jsdom';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -22,7 +23,14 @@ async function fetchWebContent(domain) {
         data += chunk;
       });
       res.on('end', () => {
-        resolve(data);
+        try {
+          const dom = new JSDOM(data);
+          const textContent = dom.window.document.body.innerText;
+          resolve(textContent.substring(0, 6000));
+        } catch (error) {
+          console.error('Error parsing HTML:', error);
+          reject(`Error parsing content for ${domain}: ${error.message}`);
+        }
       });
     }).on('error', (err) => {
       console.error('Error fetching web content:', err);
