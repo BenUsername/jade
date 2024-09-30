@@ -34,7 +34,7 @@ export default authenticate(async function handler(req, res) {
     const servicePrompt = `Please visit the website "${domain}" and analyze its content. What is the primary service or industry sector of this website? Provide a concise, specific answer in 10 words or less.`;
 
     const serviceResponse = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: 'You are a highly knowledgeable AI assistant specializing in identifying business services and industry sectors based on website content. Always visit and analyze the website before answering.' },
         { role: 'user', content: servicePrompt }
