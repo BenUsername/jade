@@ -283,7 +283,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
 
   chartContainer.style.display = 'block';
 
-  // Group and average data by date
+  // Group data by day and calculate averages
   const groupedData = historyData.reduce((acc, entry) => {
     const date = new Date(entry.date).toLocaleDateString();
     if (!acc[date]) {
@@ -299,7 +299,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     return acc;
   }, {});
 
-  // Calculate averages
+  // Calculate averages and prepare data for the chart
   const averagedData = Object.entries(groupedData).map(([date, data]) => ({
     date,
     rankings: Object.fromEntries(
@@ -310,27 +310,33 @@ function renderDomainHistoryChart(historyData, currentDomain) {
   // Sort by date
   averagedData.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  // Get all unique competitors
+  const labels = averagedData.map(entry => entry.date);
   const allCompetitors = [...new Set(averagedData.flatMap(entry => Object.keys(entry.rankings)))];
 
-  // Prepare datasets
-  const datasets = allCompetitors.map((competitor, index) => {
-    const data = averagedData.map(entry => entry.rankings[competitor] || null);
-    return {
-      label: competitor,
-      data: data,
-      borderColor: getColorScheme(index),
-      backgroundColor: getColorScheme(index) + '20',
-      fill: false,
-      borderWidth: competitor === currentDomain ? 3 : 2,
-      pointRadius: competitor === currentDomain ? 5 : 3,
-      pointHoverRadius: 8,
-      hidden: index >= 5 && competitor !== currentDomain, // Hide datasets beyond top 5 initially
-    };
+  // Sort competitors by their average ranking
+  const sortedCompetitors = allCompetitors.sort((a, b) => {
+    const avgA = averagedData.reduce((sum, entry) => sum + (entry.rankings[a] || 11), 0) / averagedData.length;
+    const avgB = averagedData.reduce((sum, entry) => sum + (entry.rankings[b] || 11), 0) / averagedData.length;
+    return avgA - avgB;
   });
 
-  // Prepare labels (dates)
-  const labels = averagedData.map(entry => entry.date);
+  // Take top 10 competitors and the current domain
+  const topCompetitors = sortedCompetitors.slice(0, 9);
+  if (!topCompetitors.includes(currentDomain)) {
+    topCompetitors.unshift(currentDomain);
+  }
+
+  const datasets = topCompetitors.map((competitor, index) => ({
+    label: competitor,
+    data: averagedData.map(entry => entry.rankings[competitor] || null),
+    borderColor: getColorScheme(index),
+    backgroundColor: getColorScheme(index) + '20',
+    fill: false,
+    borderWidth: competitor === currentDomain ? 3 : 2,
+    pointRadius: competitor === currentDomain ? 5 : 3,
+    pointHoverRadius: 8,
+    hidden: index >= 5 && competitor !== currentDomain, // Hide datasets beyond top 5 initially
+  }));
 
   // Destroy existing chart if it exists
   if (window.userHistoryChart) {
@@ -395,7 +401,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     },
   });
 
-  createLegendButtons(allCompetitors, window.userHistoryChart);
+  createLegendButtons(topCompetitors, window.userHistoryChart);
 }
 
 // Add CSV export functionality
@@ -539,97 +545,6 @@ async function fetchDomainHistory(domain) {
     console.error('Error fetching domain history:', error);
     toastr.error('An unexpected error occurred while fetching domain history.');
   }
-}
-
-// Add this function to render domain history chart
-function renderDomainHistoryChart(historyData) {
-  const ctx = document.getElementById('historyChart').getContext('2d');
-
-  // Prepare data for the chart
-  const labels = historyData.map(entry => new Date(entry.date).toLocaleDateString());
-  const datasets = [];
-
-  // Get all unique competitors across all entries
-  const allCompetitors = [...new Set(historyData.flatMap(entry => entry.rankings))];
-
-  // Sort competitors by their average ranking
-  const sortedCompetitors = allCompetitors.sort((a, b) => {
-    const avgRankA = historyData.reduce((sum, entry) => sum + (entry.rankings.indexOf(a) + 1 || 11), 0) / historyData.length;
-    const avgRankB = historyData.reduce((sum, entry) => sum + (entry.rankings.indexOf(b) + 1 || 11), 0) / historyData.length;
-    return avgRankA - avgRankB;
-  });
-
-  // Take top 10 competitors
-  const topCompetitors = sortedCompetitors.slice(0, 10);
-
-  topCompetitors.forEach((competitor, index) => {
-    const data = historyData.map(entry => {
-      const rank = entry.rankings.indexOf(competitor);
-      return rank !== -1 ? rank + 1 : null; // Rank positions start from 1
-    });
-
-    const isUserDomain = competitor === historyData[0].domain;
-
-    datasets.push({
-      label: competitor,
-      data: data,
-      borderColor: getColor(index, isUserDomain ? '1' : '0.7'),
-      backgroundColor: getColor(index, isUserDomain ? '0.2' : '0'),
-      fill: isUserDomain,
-      borderWidth: isUserDomain ? 3 : 1,
-      pointRadius: isUserDomain ? 5 : 3,
-    });
-  });
-
-  // Destroy existing chart if it exists
-  if (window.userHistoryChart) {
-    window.userHistoryChart.destroy();
-  }
-
-  // Create new chart
-  window.userHistoryChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: datasets,
-    },
-    options: {
-      scales: {
-        y: {
-          reverse: true,
-          min: 1,
-          max: 10,
-          ticks: {
-            stepSize: 1,
-            callback: function(value) {
-              return value > 10 ? '' : value.toString();
-            }
-          },
-          title: {
-            display: true,
-            text: 'Rank Position',
-          },
-        },
-      },
-      plugins: {
-        legend: {
-          position: 'right',
-        },
-        tooltip: {
-          callbacks: {
-            title: function(tooltipItems) {
-              return `Date: ${tooltipItems[0].label}`;
-            },
-            label: function(context) {
-              const label = context.dataset.label;
-              const value = context.parsed.y;
-              return `${label}: ${value === null ? 'Not in top 10' : `Rank ${value}`}`;
-            }
-          }
-        }
-      }
-    },
-  });
 }
 
 // Add this function to handle collapsible elements
