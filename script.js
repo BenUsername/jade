@@ -175,7 +175,7 @@ document.getElementById('brand-form').addEventListener('submit', async function 
 
     const data = await response.json();
     displayResults(data);
-    // Fetch and display history for this domain
+    // Fetch and display history for this specific domain
     await fetchDomainHistory(domain);
   } catch (error) {
     console.error('Error:', error);
@@ -227,7 +227,7 @@ async function fetchDomainHistory(domain) {
 }
 
 function renderDomainHistoryChart(historyData, currentDomain) {
-  console.log('Attempting to render chart with data:', historyData);
+  console.log('Attempting to render chart for domain:', currentDomain);
   const chartContainer = document.querySelector('.chart-container');
   const canvas = document.getElementById('historyChart');
   
@@ -238,8 +238,8 @@ function renderDomainHistoryChart(historyData, currentDomain) {
   
   const ctx = canvas.getContext('2d');
 
-  if (!historyData || historyData.length === 0) {
-    console.log('No data to render chart.');
+  if (!historyData || historyData.length === 0 || historyData[0].domain !== currentDomain) {
+    console.log('No data to render chart or data is not for the current domain.');
     chartContainer.style.display = 'none';
     return;
   }
@@ -262,10 +262,10 @@ function renderDomainHistoryChart(historyData, currentDomain) {
   });
   console.log('Sorted competitors:', sortedCompetitors);
 
-  // Take top 5 competitors and the current domain
-  const topCompetitors = sortedCompetitors.slice(0, 5);
+  // Take top 10 competitors and the current domain
+  const topCompetitors = sortedCompetitors.slice(0, 9);
   if (!topCompetitors.includes(currentDomain)) {
-    topCompetitors.push(currentDomain);
+    topCompetitors.unshift(currentDomain);
   }
   console.log('Top competitors:', topCompetitors);
 
@@ -684,7 +684,7 @@ async function fetchUserHistory() {
       throw new Error('Failed to fetch user history');
     }
     const historyData = await response.json();
-    renderDomainHistoryChart(historyData);
+    displaySearchHistory(historyData);
   } catch (error) {
     console.error('Error fetching user history:', error);
     toastr.error('Failed to fetch user history');
