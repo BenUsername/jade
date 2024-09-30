@@ -1,5 +1,6 @@
 import authenticate from '../middleware/auth';
 import OpenAI from 'openai';
+import axios from 'axios';
 import dbConnect from '../lib/dbConnect';
 import RankingHistory from '../models/RankingHistory';
 
@@ -11,6 +12,32 @@ const openai = new OpenAI({
 function isValidDomain(domain) {
   const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i;
   return domainRegex.test(domain);
+}
+
+async function queryClaudeForService(domain) {
+  const prompt = `Please visit the website ${domain} and analyze its content. What is the primary service or industry sector of this website? Provide a concise, specific answer in 10 words or less.`;
+
+  try {
+    const response = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: 'claude-3-opus-20240229',
+        max_tokens: 100,
+        messages: [{ role: 'user', content: prompt }],
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+        },
+      }
+    );
+
+    return response.data.content[0].text.trim();
+  } catch (error) {
+    console.error('Error querying Claude:', error);
+    throw error;
+  }
 }
 
 export default authenticate(async function handler(req, res) {
@@ -30,28 +57,16 @@ export default authenticate(async function handler(req, res) {
   }
 
   try {
-    // Step 1: Determine the service provided by the website
-    const servicePrompt = `Please visit the website "${domain}" and analyze its content. What is the primary service or industry sector of this website? Provide a concise, specific answer in 10 words or less.`;
+    // Step 1: Determine the service provided by the website using Claude
+    const service = await queryClaudeForService(domain);
 
-    const serviceResponse = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: 'You are a highly knowledgeable AI assistant specializing in identifying business services and industry sectors based on website content. Always visit and analyze the website before answering.' },
-        { role: 'user', content: servicePrompt }
-      ],
-      temperature: 0.3,
-      max_tokens: 100,
-    });
-
-    const service = serviceResponse.choices[0].message.content.trim();
-
-    // Step 2: Get the best websites for that service
-    const websitesPrompt = `Based on your visit to "${domain}" and your understanding of its service as "${service}", list the top 5 most popular and reputable websites that directly compete with this domain. Provide only the domain names, separated by newlines, starting with the most prominent competitor.`;
+    // Step 2: Get the best websites for that service using OpenAI
+    const websitesPrompt = `Based on the domain "${domain}" and its service as "${service}", list the top 5 most popular and reputable websites that might directly compete with this domain. Provide only the domain names, separated by newlines, starting with the most prominent competitor.`;
 
     const websitesResponse = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4',
       messages: [
-        { role: 'system', content: 'You are a knowledgeable AI assistant with expertise in identifying top competitors in various industries based on website analysis.' },
+        { role: 'system', content: 'You are a knowledgeable AI assistant with expertise in identifying top competitors in various industries based on domain names and services.' },
         { role: 'user', content: websitesPrompt }
       ],
       temperature: 0.7,
