@@ -76,20 +76,21 @@ Please tell me the top 20 prompts where you think this company would like to ran
   return keywordPrompts;
 }
 
-async function queryLLM(keywords) {
-    const prompt = `Generate SEO recommendations for a website targeting the following keywords: ${keywords}. Include suggestions for content, meta tags, and internal linking.`;
+async function queryLLM(domain, keywords) {
+    const prompt = `Generate SEO recommendations for the website ${domain} targeting the following keywords: ${keywords}. Include suggestions for content, meta tags, and internal linking.`;
 
     try {
-        const response = await openai.createCompletion({
-            model: "text-davinci-002",
-            prompt: prompt,
+        const response = await openai.chat.completions.create({
+            model: "gpt-4",
+            messages: [
+                { role: "system", content: "You are an SEO expert assistant." },
+                { role: "user", content: prompt }
+            ],
             max_tokens: 500,
-            n: 1,
-            stop: null,
             temperature: 0.7,
         });
 
-        return response.data.choices[0].text.trim();
+        return response.choices[0].message.content.trim();
     } catch (error) {
         console.error('Error querying LLM:', error);
         throw error;
@@ -103,11 +104,11 @@ export default authenticate(async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
-  const { domain } = req.body;
+  const { domain, keywords } = req.body;
   const userId = req.userId;
 
-  if (!domain) {
-    return res.status(400).json({ error: 'Domain is required' });
+  if (!domain || !keywords) {
+    return res.status(400).json({ error: 'Domain and keywords are required' });
   }
 
   if (!isValidDomain(domain)) {
@@ -121,26 +122,11 @@ export default authenticate(async function handler(req, res) {
     // Get service from API
     const service = await queryAPIForService(domain, webContent);
 
-    // Get competitors using API
-    const websitesPrompt = `Based on the domain "${domain}" and the identified service "${service}", list the top 10 most popular and reputable websites that might directly compete with this domain. Provide only the domain names, separated by newlines, starting with the most prominent competitor.`;
-
-    const websitesResponse = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        { role: 'system', content: 'You are a knowledgeable AI assistant with expertise in identifying top competitors in various industries based on domain names and services.' },
-        { role: 'user', content: websitesPrompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 50,
-    });
-
-    const rankings = websitesResponse.choices[0].message.content.trim()
-      .split('\n')
-      .map((item) => item.replace(/^\d+\.\s*/, '').trim())
-      .filter((item) => item !== '');
-
     // Generate keyword prompts
     const keywordPrompts = await generateKeywordPrompts(domain, webContent);
+
+    // Query LLM for SEO recommendations
+    const seoRecommendations = await queryLLM(domain, keywords);
 
     // Save the result to the database
     await dbConnect();
@@ -148,19 +134,17 @@ export default authenticate(async function handler(req, res) {
       userId,
       domain,
       service,
-      rankings,
       keywordPrompts,
+      seoRecommendations,
       date: new Date(),
-      // Add a default value for userDescription if it's still required in your schema
-      userDescription: 'Not provided', // or you can use an empty string ''
     });
     await rankingHistory.save();
 
-    res.status(200).json({ domain, service, rankings, keywordPrompts });
+    res.status(200).json({ domain, service, keywordPrompts, seoRecommendations });
 
   } catch (error) {
     console.error('Error processing request:', error);
-    res.status(500).json({ error: 'Failed to process request', details: error.message, stack: error.stack });
+    res.status(500).json({ error: 'Failed to process request', details: error.message });
   }
 });
 
