@@ -8,6 +8,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Initialize Anthropic client
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
@@ -30,17 +31,12 @@ async function queryClaudeForService(domain) {
       messages: [
         {
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: prompt
-            }
-          ]
+          content: prompt
         }
       ]
     });
 
-    return message.content[0].text.trim();
+    return message.content[0].text;
   } catch (error) {
     console.error('Error querying Claude:', error);
     throw error;
