@@ -139,6 +139,9 @@ document.getElementById('logout-button').addEventListener('click', function () {
   document.getElementById('auth-container').style.display = 'block';
   document.getElementById('post-login-content').style.display = 'none';
   document.querySelector('.contact-us').style.display = 'none'; // Hide contact us button
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('registration-form').style.display = 'none';
+  document.querySelector('.intro-section').style.display = 'block'; // Show intro section on logout
 });
 
 // Expandable sections
@@ -497,8 +500,10 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     document.getElementById('auth-container').style.display = 'block';
     document.getElementById('login-form').style.display = 'block';
+    document.getElementById('registration-form').style.display = 'none';
     document.getElementById('post-login-content').style.display = 'none';
     document.querySelector('.contact-us').style.display = 'none'; // Hide contact us button
+    document.querySelector('.intro-section').style.display = 'block'; // Show intro section
   }
 
   // Initialize tooltips
@@ -668,6 +673,9 @@ document.getElementById('logout-button').addEventListener('click', function () {
   document.getElementById('auth-container').style.display = 'block';
   document.getElementById('post-login-content').style.display = 'none';
   document.querySelector('.contact-us').style.display = 'none'; // Hide contact us button
+  document.getElementById('login-form').style.display = 'block';
+  document.getElementById('registration-form').style.display = 'none';
+  document.querySelector('.intro-section').style.display = 'block'; // Show intro section on logout
 });
 
 // Modify fetchUserHistory function
