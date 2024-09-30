@@ -54,6 +54,41 @@ Please tell me the top 20 prompts where you think this company would like to ran
   return keywordPrompts;
 }
 
+async function queryTopPrompts(domain, prompts) {
+  const results = [];
+  for (const prompt of prompts.slice(0, 5)) {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: prompt }
+      ],
+      max_tokens: 100,
+      temperature: 0.7,
+    });
+
+    const response = completion.choices[0].message.content.trim();
+    const score = await scoreResponse(domain, response);
+    results.push({ prompt, response, score });
+  }
+  return results;
+}
+
+async function scoreResponse(domain, response) {
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      { role: "system", content: "You are an SEO expert assistant." },
+      { role: "user", content: `On a scale of 0 to 10, how well does the domain "${domain}" rank in this response? Only provide a number as your answer.\n\nResponse: ${response}` }
+    ],
+    max_tokens: 5,
+    temperature: 0.3,
+  });
+
+  const score = parseInt(completion.choices[0].message.content.trim());
+  return isNaN(score) ? 0 : score;
+}
+
 export default authenticate(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -77,18 +112,22 @@ export default authenticate(async function handler(req, res) {
     // Generate keyword prompts
     const keywordPrompts = await generateKeywordPrompts(domain, webContent);
 
+    // Query top 5 prompts and get results
+    const topPromptsResults = await queryTopPrompts(domain, keywordPrompts);
+
     // Save the result to the database
     await dbConnect();
     const rankingHistory = new RankingHistory({
       userId,
       domain,
       keywordPrompts,
+      topPromptsResults,
       date: new Date(),
-      service: 'Not specified', // Add a default value for the service field
+      service: 'Not specified',
     });
     await rankingHistory.save();
 
-    res.status(200).json({ domain, keywordPrompts });
+    res.status(200).json({ domain, keywordPrompts, topPromptsResults });
 
   } catch (error) {
     console.error('Error processing request:', error);

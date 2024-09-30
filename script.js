@@ -195,23 +195,29 @@ function displayResults(data) {
   const resultDiv = document.getElementById('result');
   resultDiv.innerHTML = `
     <h2>Results for ${data.domain}</h2>
-    <h3>Top 20 Keyword Prompts:</h3>
+    <h3>Top 5 Keyword Prompts Analysis:</h3>
     <table class="table table-striped">
       <thead>
         <tr>
-          <th>#</th>
           <th>Prompt</th>
+          <th>Response</th>
+          <th>Score</th>
         </tr>
       </thead>
       <tbody>
-        ${data.keywordPrompts.map((prompt, index) => `
+        ${data.topPromptsResults.map(result => `
           <tr>
-            <td>${index + 1}</td>
-            <td>${prompt}</td>
+            <td>${result.prompt}</td>
+            <td>${result.response}</td>
+            <td>${result.score}/10</td>
           </tr>
         `).join('')}
       </tbody>
     </table>
+    <h3>All Keyword Prompts:</h3>
+    <ol>
+      ${data.keywordPrompts.map(prompt => `<li>${prompt}</li>`).join('')}
+    </ol>
   `;
 }
 
