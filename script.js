@@ -320,16 +320,25 @@ function renderDomainHistoryChart(historyData, currentDomain) {
   });
 
   // Sort competitors by their overall average ranking
-  const sortedCompetitors = overallAverages.sort((a, b) => a.average - b.average).map(item => item.competitor);
+  const sortedCompetitors = overallAverages.sort((a, b) => a.average - b.average);
 
-  const datasets = sortedCompetitors.map((competitor, index) => ({
-    label: competitor,
-    data: averagedData.map(entry => entry.rankings[competitor] || null),
+  // Assign integer ranks from 1 to 10 based on the sorted averages
+  const rankedCompetitors = sortedCompetitors.map((item, index) => ({
+    ...item,
+    rank: Math.min(index + 1, 10) // Ensure rank is between 1 and 10
+  }));
+
+  const datasets = rankedCompetitors.map((competitor, index) => ({
+    label: competitor.competitor,
+    data: averagedData.map(entry => {
+      const avgRank = entry.rankings[competitor.competitor];
+      return avgRank ? competitor.rank : null;
+    }),
     borderColor: getColorScheme(index),
     backgroundColor: getColorScheme(index) + '20',
     fill: false,
-    borderWidth: competitor === currentDomain ? 3 : 2,
-    pointRadius: competitor === currentDomain ? 5 : 3,
+    borderWidth: competitor.competitor === currentDomain ? 3 : 2,
+    pointRadius: competitor.competitor === currentDomain ? 5 : 3,
     pointHoverRadius: 8,
     hidden: false, // Make all competitors visible by default
   }));
@@ -380,7 +389,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
             label: function(context) {
               const label = context.dataset.label;
               const value = context.parsed.y;
-              return `${label}: ${value === null ? 'Not in top 10' : `Rank ${value.toFixed(2)}`}`;
+              return `${label}: ${value === null ? 'Not in top 10' : `Rank ${value}`}`;
             }
           }
         }
@@ -397,7 +406,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     },
   });
 
-  createLegendButtons(sortedCompetitors, window.userHistoryChart);
+  createLegendButtons(rankedCompetitors.map(c => c.competitor), window.userHistoryChart);
 }
 
 // Add CSV export functionality
