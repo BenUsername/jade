@@ -129,6 +129,8 @@ export default authenticate(async function handler(req, res) {
       rankings,
       keywordPrompts,
       date: new Date(),
+      // Add a default value for userDescription if it's still required in your schema
+      userDescription: 'Not provided', // or you can use an empty string ''
     });
     await rankingHistory.save();
 
@@ -136,7 +138,7 @@ export default authenticate(async function handler(req, res) {
 
   } catch (error) {
     console.error('Error processing request:', error);
-    res.status(500).json({ error: 'Failed to process request', details: error.message });
+    res.status(500).json({ error: 'Failed to process request', details: error.message, stack: error.stack });
   }
 });
 
