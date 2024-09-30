@@ -136,8 +136,9 @@ if (loginForm) {
 document.getElementById('logout-button').addEventListener('click', function () {
   authToken = null;
   localStorage.removeItem('authToken');
-  document.getElementById('registration-form').style.display = 'block';
+  document.getElementById('auth-container').style.display = 'block';
   document.getElementById('login-form').style.display = 'block';
+  document.getElementById('registration-form').style.display = 'none';
   document.getElementById('post-login-content').style.display = 'none';
 });
 
@@ -391,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (authToken) {
     updateUIForLoggedInUser();
   } else {
-    document.getElementById('registration-form').style.display = 'block';
+    document.getElementById('auth-container').style.display = 'block';
     document.getElementById('login-form').style.display = 'block';
     document.getElementById('post-login-content').style.display = 'none';
   }
@@ -585,11 +586,23 @@ function displaySearchHistory(historyData) {
 
 // Modify or add this function to ensure proper display on page load
 function updateUIForLoggedInUser() {
-  document.getElementById('registration-form').style.display = 'none';
-  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('auth-container').style.display = 'none';
   document.getElementById('post-login-content').style.display = 'block';
   document.getElementById('brand-analysis').style.display = 'block';
   document.querySelector('.chart-container').style.display = 'none'; // Hide chart container initially
   fetchUserHistory();
   setupCollapsible();
 }
+
+// Add these lines near the top of your script.js file
+document.getElementById('show-register').addEventListener('click', function(e) {
+  e.preventDefault();
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('registration-form').style.display = 'block';
+});
+
+document.getElementById('show-login').addEventListener('click', function(e) {
+  e.preventDefault();
+  document.getElementById('registration-form').style.display = 'none';
+  document.getElementById('login-form').style.display = 'block';
+});
