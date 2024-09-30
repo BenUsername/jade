@@ -298,26 +298,24 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     groupedData[date].count++;
   });
 
-  // Calculate averages
-  const averagedData = Object.entries(groupedData).map(([date, data]) => ({
-    date,
-    rankings: Object.fromEntries(
-      Object.entries(data.rankings).map(([competitor, sum]) => [competitor, sum / data.count])
-    )
-  }));
-
-  // Sort by date
-  averagedData.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  // Prepare data for the chart
-  const labels = averagedData.map(entry => entry.date);
-  const allCompetitors = [...new Set(averagedData.flatMap(entry => Object.keys(entry.rankings)))];
+  // Calculate averages and prepare data for the chart
+  const labels = [];
+  const datasets = {};
+  Object.entries(groupedData).forEach(([date, data]) => {
+    labels.push(date);
+    Object.entries(data.rankings).forEach(([competitor, sum]) => {
+      if (!datasets[competitor]) {
+        datasets[competitor] = { label: competitor, data: [] };
+      }
+      datasets[competitor].data.push(sum / data.count);
+    });
+  });
 
   // Sort competitors by their average ranking
-  const sortedCompetitors = allCompetitors.sort((a, b) => {
-    const avgRankA = averagedData.reduce((sum, entry) => sum + (entry.rankings[a] || 11), 0) / averagedData.length;
-    const avgRankB = averagedData.reduce((sum, entry) => sum + (entry.rankings[b] || 11), 0) / averagedData.length;
-    return avgRankA - avgRankB;
+  const sortedCompetitors = Object.keys(datasets).sort((a, b) => {
+    const avgA = datasets[a].data.reduce((sum, val) => sum + val, 0) / datasets[a].data.length;
+    const avgB = datasets[b].data.reduce((sum, val) => sum + val, 0) / datasets[b].data.length;
+    return avgA - avgB;
   });
 
   // Take top 10 competitors and the current domain
@@ -326,9 +324,8 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     topCompetitors.unshift(currentDomain);
   }
 
-  const datasets = topCompetitors.map((competitor, index) => ({
-    label: competitor,
-    data: averagedData.map(entry => entry.rankings[competitor] || null),
+  const chartDatasets = topCompetitors.map((competitor, index) => ({
+    ...datasets[competitor],
     borderColor: getColorScheme(index),
     backgroundColor: getColorScheme(index) + '20',
     fill: false,
@@ -348,7 +345,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     type: 'line',
     data: {
       labels: labels,
-      datasets: datasets,
+      datasets: chartDatasets,
     },
     options: {
       responsive: true,
