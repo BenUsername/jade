@@ -40,6 +40,7 @@ async function generateKeywordPrompts(domain) {
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
       max_tokens: 500,
+      timeout: 60000, // 60 seconds timeout
     });
 
     const keywordPrompts = response.choices[0].message.content.trim()
