@@ -5,6 +5,7 @@
   <title>Brand Tracker in LLMs</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dataselector"></script>
   <style>
@@ -77,11 +78,45 @@
       background-color: rgba(0, 86, 179, 0.9);
       opacity: 1;
     }
+    .intro-section {
+      max-width: 800px;
+      margin: 0 auto 30px;
+      text-align: center;
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .intro-section h2 {
+      color: #007bff;
+      margin-bottom: 15px;
+    }
+    .intro-section p {
+      font-size: 1.1em;
+      line-height: 1.6;
+      color: #333;
+    }
   </style>
 </head>
 <body>
   <div class="container mt-5">
     <h1 class="text-center mb-5">LLMs Brand Tracker</h1>
+
+    <!-- Introduction Section -->
+    <div class="intro-section">
+      <h2>Welcome to LLMs Brand Tracker</h2>
+      <p>
+        Discover how your brand is perceived in the world of Large Language Models. Our tool helps you:
+      </p>
+      <ul class="text-start">
+        <li>Analyze your brand's positioning in AI-generated content</li>
+        <li>Track your competitors and industry trends</li>
+        <li>Gain insights to improve your digital marketing strategy</li>
+      </ul>
+      <p>
+        Sign up now or log in to start tracking your brand's presence in the AI landscape!
+      </p>
+    </div>
 
     <!-- Authentication Container -->
     <div id="auth-container" class="auth-container">
@@ -148,11 +183,17 @@
             <form id="brand-form">
               <div class="mb-3">
                 <label for="domain-input" class="form-label">Domain</label>
-                <input type="text" class="form-control" id="domain-input" placeholder="Enter domain" required>
+                <input type="text" class="form-control" id="domain-input" placeholder="Enter domain (e.g., example.com)" required>
               </div>
               <div class="mb-3">
-                <label for="user-description-input" class="form-label">What do you do?</label>
-                <input type="text" class="form-control" id="user-description-input" placeholder="Briefly describe what you do" required>
+                <label for="user-description-input" class="form-label">
+                  What does this website or brand do?
+                  <i class="fas fa-question-circle" data-bs-toggle="tooltip" data-bs-placement="top" 
+                     title="Describe the main service or product offered by this website or brand, not what you want to do with it."></i>
+                </label>
+                <input type="text" class="form-control" id="user-description-input" 
+                       placeholder="Briefly describe the main service or product of this website/brand" required>
+                <small class="form-text text-muted">Example: "Online shoe retailer" or "Cloud storage service provider"</small>
               </div>
               <button type="submit" class="btn btn-primary">Analyze</button>
             </form>

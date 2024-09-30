@@ -500,6 +500,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('post-login-content').style.display = 'none';
     document.querySelector('.contact-us').style.display = 'none'; // Hide contact us button
   }
+
+  // Initialize tooltips
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+  })
 });
 
 // Function to validate domain
