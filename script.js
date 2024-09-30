@@ -231,7 +231,14 @@ async function fetchDomainHistory(domain) {
 function renderDomainHistoryChart(historyData, currentDomain) {
   console.log('Rendering chart with data:', historyData);
   const chartContainer = document.querySelector('.chart-container');
-  const ctx = document.getElementById('historyChart').getContext('2d');
+  const canvas = document.getElementById('historyChart');
+  
+  if (!canvas) {
+    console.error('Canvas element not found');
+    return;
+  }
+  
+  const ctx = canvas.getContext('2d');
 
   if (historyData.length === 0) {
     console.log('No data to render chart.');
@@ -288,65 +295,69 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     window.userHistoryChart.destroy();
   }
 
-  // Create new chart
-  window.userHistoryChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: datasets,
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          reverse: true,
-          min: 1,
-          max: 10,
-          ticks: {
-            stepSize: 1,
-            callback: function(value) {
-              return value > 10 ? '' : value.toString();
-            }
-          },
-          title: {
-            display: true,
-            text: 'Rank Position',
-          },
-        },
+  try {
+    // Create new chart
+    window.userHistoryChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: datasets,
       },
-      plugins: {
-        legend: {
-          position: 'top',
-        },
-        tooltip: {
-          mode: 'index',
-          intersect: false,
-          callbacks: {
-            title: function(tooltipItems) {
-              return `Date: ${tooltipItems[0].label}`;
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            reverse: true,
+            min: 1,
+            max: 10,
+            ticks: {
+              stepSize: 1,
+              callback: function(value) {
+                return value > 10 ? '' : value.toString();
+              }
             },
-            label: function(context) {
-              const label = context.dataset.label;
-              const value = context.parsed.y;
-              return `${label}: ${value === null ? 'Not in top 10' : `Rank ${value}`}`;
+            title: {
+              display: true,
+              text: 'Rank Position',
+            },
+          },
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              title: function(tooltipItems) {
+                return `Date: ${tooltipItems[0].label}`;
+              },
+              label: function(context) {
+                const label = context.dataset.label;
+                const value = context.parsed.y;
+                return `${label}: ${value === null ? 'Not in top 10' : `Rank ${value}`}`;
+              }
             }
           }
-        }
+        },
+        interaction: {
+          mode: 'nearest',
+          axis: 'x',
+          intersect: false
+        },
+        hover: {
+          mode: 'nearest',
+          intersect: true
+        },
       },
-      interaction: {
-        mode: 'nearest',
-        axis: 'x',
-        intersect: false
-      },
-      hover: {
-        mode: 'nearest',
-        intersect: true
-      },
-    },
-  });
+    });
 
-  console.log('Chart rendered');
+    console.log('Chart rendered successfully');
+  } catch (error) {
+    console.error('Error rendering chart:', error);
+  }
 }
 
 // Update other functions to use 'domain' instead of 'brand'
