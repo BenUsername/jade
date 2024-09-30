@@ -137,8 +137,6 @@ document.getElementById('logout-button').addEventListener('click', function () {
   authToken = null;
   localStorage.removeItem('authToken');
   document.getElementById('auth-container').style.display = 'block';
-  document.getElementById('login-form').style.display = 'block';
-  document.getElementById('registration-form').style.display = 'none';
   document.getElementById('post-login-content').style.display = 'none';
 });
 
@@ -630,3 +628,104 @@ document.getElementById('show-login').addEventListener('click', function(e) {
   document.getElementById('registration-form').style.display = 'none';
   document.getElementById('login-form').style.display = 'block';
 });
+
+// Function to switch between content sections
+function showSection(sectionId) {
+  document.querySelectorAll('.content-section').forEach(section => {
+    section.style.display = 'none';
+  });
+  document.getElementById(sectionId).style.display = 'block';
+}
+
+// Add event listeners for menu items
+document.getElementById('brand-analysis-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  showSection('brand-analysis');
+});
+
+document.getElementById('ranking-history-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  showSection('ranking-history');
+  fetchUserHistory();
+});
+
+document.getElementById('search-history-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  showSection('search-history');
+  fetchSearchHistory();
+});
+
+// Modify updateUIForLoggedInUser function
+function updateUIForLoggedInUser() {
+  document.getElementById('auth-container').style.display = 'none';
+  document.getElementById('post-login-content').style.display = 'block';
+  showSection('brand-analysis');
+  fetchUserHistory();
+}
+
+// Modify logout button event listener
+document.getElementById('logout-button').addEventListener('click', function () {
+  authToken = null;
+  localStorage.removeItem('authToken');
+  document.getElementById('auth-container').style.display = 'block';
+  document.getElementById('post-login-content').style.display = 'none';
+});
+
+// Modify fetchUserHistory function
+async function fetchUserHistory() {
+  try {
+    const response = await fetchWithAuth('/api/get-history');
+    if (!response.ok) {
+      throw new Error('Failed to fetch user history');
+    }
+    const historyData = await response.json();
+    renderDomainHistoryChart(historyData);
+  } catch (error) {
+    console.error('Error fetching user history:', error);
+    toastr.error('Failed to fetch user history');
+  }
+}
+
+// Add fetchSearchHistory function
+async function fetchSearchHistory() {
+  try {
+    const response = await fetchWithAuth('/api/get-history');
+    if (!response.ok) {
+      throw new Error('Failed to fetch search history');
+    }
+    const historyData = await response.json();
+    displaySearchHistory(historyData);
+  } catch (error) {
+    console.error('Error fetching search history:', error);
+    toastr.error('Failed to fetch search history');
+  }
+}
+
+// Modify displaySearchHistory function
+function displaySearchHistory(historyData) {
+  const historyContent = document.getElementById('search-history-content');
+  historyContent.innerHTML = ''; // Clear existing content
+  
+  const table = document.createElement('table');
+  table.className = 'table table-striped';
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Domain</th>
+        <th>Service</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${historyData.map(entry => `
+        <tr>
+          <td>${new Date(entry.date).toLocaleString()}</td>
+          <td>${entry.domain}</td>
+          <td>${entry.service}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+  
+  historyContent.appendChild(table);
+}
