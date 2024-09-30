@@ -2,8 +2,7 @@ import authenticate from '../middleware/auth';
 import OpenAI from 'openai';
 import dbConnect from '../lib/dbConnect';
 import RankingHistory from '../models/RankingHistory';
-import axios from 'axios';
-import cheerio from 'cheerio';
+import https from 'https';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -16,15 +15,20 @@ function isValidDomain(domain) {
 }
 
 async function fetchWebContent(domain) {
-  try {
-    const response = await axios.get(`https://${domain}`);
-    const $ = cheerio.load(response.data);
-    // Extract text content from the body
-    return $('body').text().trim();
-  } catch (error) {
-    console.error('Error fetching web content:', error);
-    return `Error fetching content for ${domain}: ${error.message}`;
-  }
+  return new Promise((resolve, reject) => {
+    https.get(`https://${domain}`, (res) => {
+      let data = '';
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      res.on('end', () => {
+        resolve(data);
+      });
+    }).on('error', (err) => {
+      console.error('Error fetching web content:', err);
+      reject(`Error fetching content for ${domain}: ${err.message}`);
+    });
+  });
 }
 
 async function queryAPIForService(domain, webContent) {
@@ -132,7 +136,7 @@ export default authenticate(async function handler(req, res) {
 
   } catch (error) {
     console.error('Error processing request:', error);
-    res.status(500).json({ error: 'Failed to process request' });
+    res.status(500).json({ error: 'Failed to process request', details: error.message });
   }
 });
 
