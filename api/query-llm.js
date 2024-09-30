@@ -31,28 +31,31 @@ export default authenticate(async function handler(req, res) {
 
   try {
     // Step 1: Determine the service provided by the website
-    const servicePrompt = `What is the primary service or industry sector of the website "${domain}"? Provide a concise, specific answer in 10 words or less.`;
+    const servicePrompt = `Please visit the website "${domain}" and analyze its content. What is the primary service or industry sector of this website? Provide a concise, specific answer in 10 words or less.`;
 
     const serviceResponse = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',  // Use the latest GPT-4 model
+      model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a highly knowledgeable AI assistant specializing in identifying business services and industry sectors based on website domains.' },
+        { role: 'system', content: 'You are a highly knowledgeable AI assistant specializing in identifying business services and industry sectors based on website content. Always visit and analyze the website before answering.' },
         { role: 'user', content: servicePrompt }
       ],
-      temperature: 0.3,  // Slightly increase temperature for more nuanced responses
-      max_tokens: 100,   // Increase token limit for more detailed responses
+      temperature: 0.3,
+      max_tokens: 100,
     });
 
     const service = serviceResponse.choices[0].message.content.trim();
 
     // Step 2: Get the best websites for that service
-    const websitesPrompt = `List the top 5 most popular and reputable websites that directly compete with "${domain}" in providing ${service}. Provide only the domain names, separated by newlines, starting with the most prominent competitor.`;
+    const websitesPrompt = `Based on your visit to "${domain}" and your understanding of its service as "${service}", list the top 5 most popular and reputable websites that directly compete with this domain. Provide only the domain names, separated by newlines, starting with the most prominent competitor.`;
 
     const websitesResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: websitesPrompt }],
-      temperature: 0, // Higher temperature for more variety in competitors
-      max_tokens: 100,  // Allow for longer response to include 5 competitors
+      messages: [
+        { role: 'system', content: 'You are a knowledgeable AI assistant with expertise in identifying top competitors in various industries based on website analysis.' },
+        { role: 'user', content: websitesPrompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 100,
     });
 
     const rankingsText = websitesResponse.choices[0].message.content.trim();
