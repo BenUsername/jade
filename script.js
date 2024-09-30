@@ -282,132 +282,126 @@ function renderDomainHistoryChart(historyData, currentDomain) {
 
   chartContainer.style.display = 'block';
 
-  // Prepare data for the chart
-  const labels = historyData.map(entry => new Date(entry.date).toLocaleDateString());
-  const datasets = [];
+  // Group and average data by date
+  const groupedData = {};
+  historyData.forEach(entry => {
+    const date = new Date(entry.date).toLocaleDateString();
+    if (!groupedData[date]) {
+      groupedData[date] = { rankings: {}, count: 0 };
+    }
+    entry.rankings.forEach((competitor, index) => {
+      if (!groupedData[date].rankings[competitor]) {
+        groupedData[date].rankings[competitor] = 0;
+      }
+      groupedData[date].rankings[competitor] += index + 1;
+    });
+    groupedData[date].count++;
+  });
 
-  // Get all unique competitors across all entries
-  const allCompetitors = [...new Set(historyData.flatMap(entry => entry.rankings))];
-  console.log('All competitors:', allCompetitors);
+  // Calculate averages
+  const averagedData = Object.entries(groupedData).map(([date, data]) => ({
+    date,
+    rankings: Object.fromEntries(
+      Object.entries(data.rankings).map(([competitor, sum]) => [competitor, sum / data.count])
+    )
+  }));
+
+  // Sort by date
+  averagedData.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  // Prepare data for the chart
+  const labels = averagedData.map(entry => entry.date);
+  const allCompetitors = [...new Set(averagedData.flatMap(entry => Object.keys(entry.rankings)))];
 
   // Sort competitors by their average ranking
   const sortedCompetitors = allCompetitors.sort((a, b) => {
-    const avgRankA = historyData.reduce((sum, entry) => sum + (entry.rankings.indexOf(a) + 1 || 11), 0) / historyData.length;
-    const avgRankB = historyData.reduce((sum, entry) => sum + (entry.rankings.indexOf(b) + 1 || 11), 0) / historyData.length;
+    const avgRankA = averagedData.reduce((sum, entry) => sum + (entry.rankings[a] || 11), 0) / averagedData.length;
+    const avgRankB = averagedData.reduce((sum, entry) => sum + (entry.rankings[b] || 11), 0) / averagedData.length;
     return avgRankA - avgRankB;
   });
-  console.log('Sorted competitors:', sortedCompetitors);
 
   // Take top 10 competitors and the current domain
   const topCompetitors = sortedCompetitors.slice(0, 9);
   if (!topCompetitors.includes(currentDomain)) {
     topCompetitors.unshift(currentDomain);
   }
-  console.log('Top competitors:', topCompetitors);
 
-  topCompetitors.forEach((competitor, index) => {
-    const data = historyData.map(entry => {
-      const rank = entry.rankings.indexOf(competitor);
-      return rank !== -1 ? rank + 1 : null; // Rank positions start from 1
-    });
-
-    const isCurrentDomain = competitor === currentDomain;
-
-    datasets.push({
-      label: competitor,
-      data: data,
-      borderColor: getColorScheme(index),
-      backgroundColor: getColorScheme(index) + '20',
-      fill: false,
-      borderWidth: isCurrentDomain ? 3 : 2,
-      pointRadius: isCurrentDomain ? 5 : 3,
-      pointHoverRadius: 8,
-    });
-  });
-
-  console.log('Chart datasets:', datasets);
+  const datasets = topCompetitors.map((competitor, index) => ({
+    label: competitor,
+    data: averagedData.map(entry => entry.rankings[competitor] || null),
+    borderColor: getColorScheme(index),
+    backgroundColor: getColorScheme(index) + '20',
+    fill: false,
+    borderWidth: competitor === currentDomain ? 3 : 2,
+    pointRadius: competitor === currentDomain ? 5 : 3,
+    pointHoverRadius: 8,
+    hidden: index >= 5 && competitor !== currentDomain, // Hide datasets beyond top 5 initially
+  }));
 
   // Destroy existing chart if it exists
   if (window.userHistoryChart) {
-    console.log('Destroying existing chart');
     window.userHistoryChart.destroy();
   }
 
-  try {
-    console.log('Creating new chart');
-    // Create new chart
-    window.userHistoryChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: datasets,
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            reverse: true,
-            min: 1,
-            max: 10,
-            ticks: {
-              stepSize: 1,
-              callback: function(value) {
-                return value > 10 ? '' : value.toString();
-              }
-            },
-            title: {
-              display: true,
-              text: 'Rank Position',
-            },
+  // Create new chart
+  window.userHistoryChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: datasets,
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          reverse: true,
+          min: 1,
+          max: 10,
+          ticks: {
+            stepSize: 1,
+            callback: function(value) {
+              return value > 10 ? '' : value.toString();
+            }
+          },
+          title: {
+            display: true,
+            text: 'Average Rank Position',
           },
         },
-        plugins: {
-          legend: {
-            display: false,
-          },
-          dataselector: {
-            display: true,
-            filter: null,
-            usePointStyle: true,
-            position: 'bottom',
-            labels: {
-              usePointStyle: true,
+      },
+      plugins: {
+        legend: {
+          display: false,
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          callbacks: {
+            title: function(tooltipItems) {
+              return `Date: ${tooltipItems[0].label}`;
             },
-          },
-          tooltip: {
-            mode: 'index',
-            intersect: false,
-            callbacks: {
-              title: function(tooltipItems) {
-                return `Date: ${tooltipItems[0].label}`;
-              },
-              label: function(context) {
-                const label = context.dataset.label;
-                const value = context.parsed.y;
-                return `${label}: ${value === null ? 'Not in top 10' : `Rank ${value}`}`;
-              }
+            label: function(context) {
+              const label = context.dataset.label;
+              const value = context.parsed.y;
+              return `${label}: ${value === null ? 'Not in top 10' : `Avg Rank ${value.toFixed(2)}`}`;
             }
           }
-        },
-        interaction: {
-          mode: 'nearest',
-          axis: 'x',
-          intersect: false
-        },
-        hover: {
-          mode: 'nearest',
-          intersect: true
-        },
+        }
       },
-    });
+      interaction: {
+        mode: 'nearest',
+        axis: 'x',
+        intersect: false
+      },
+      hover: {
+        mode: 'nearest',
+        intersect: true
+      },
+    },
+  });
 
-    createLegendButtons(topCompetitors, window.userHistoryChart);
-
-    console.log('Chart rendered successfully');
-  } catch (error) {
-    console.error('Error rendering chart:', error);
-  }
+  createLegendButtons(topCompetitors, window.userHistoryChart);
 }
 
 // Add CSV export functionality
