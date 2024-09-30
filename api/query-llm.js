@@ -1,10 +1,15 @@
 import authenticate from '../middleware/auth';
 import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import dbConnect from '../lib/dbConnect';
 import RankingHistory from '../models/RankingHistory';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+});
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 // Function to validate domain
@@ -17,25 +22,25 @@ async function queryClaudeForService(domain) {
   const prompt = `Please visit the website ${domain} and analyze its content. What is the primary service or industry sector of this website? Provide a concise, specific answer in 10 words or less.`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-      },
-      body: JSON.stringify({
-        model: 'claude-3-opus-20240229',
-        max_tokens: 100,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const message = await anthropic.messages.create({
+      model: "claude-3-sonnet-20240229",
+      max_tokens: 100,
+      temperature: 0.3,
+      system: "You are an AI assistant specialized in analyzing websites and determining their primary services or industry sectors.",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: prompt
+            }
+          ]
+        }
+      ]
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.content[0].text.trim();
+    return message.content[0].text.trim();
   } catch (error) {
     console.error('Error querying Claude:', error);
     throw error;
