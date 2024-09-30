@@ -227,7 +227,7 @@ async function fetchDomainHistory(domain) {
 }
 
 function renderDomainHistoryChart(historyData, currentDomain) {
-  console.log('Rendering chart with data:', historyData);
+  console.log('Attempting to render chart with data:', historyData);
   const chartContainer = document.querySelector('.chart-container');
   const canvas = document.getElementById('historyChart');
   
@@ -238,7 +238,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
   
   const ctx = canvas.getContext('2d');
 
-  if (historyData.length === 0) {
+  if (!historyData || historyData.length === 0) {
     console.log('No data to render chart.');
     chartContainer.style.display = 'none';
     return;
@@ -252,6 +252,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
 
   // Get all unique competitors across all entries
   const allCompetitors = [...new Set(historyData.flatMap(entry => entry.rankings))];
+  console.log('All competitors:', allCompetitors);
 
   // Sort competitors by their average ranking
   const sortedCompetitors = allCompetitors.sort((a, b) => {
@@ -259,12 +260,14 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     const avgRankB = historyData.reduce((sum, entry) => sum + (entry.rankings.indexOf(b) + 1 || 11), 0) / historyData.length;
     return avgRankA - avgRankB;
   });
+  console.log('Sorted competitors:', sortedCompetitors);
 
   // Take top 5 competitors and the current domain
   const topCompetitors = sortedCompetitors.slice(0, 5);
   if (!topCompetitors.includes(currentDomain)) {
     topCompetitors.push(currentDomain);
   }
+  console.log('Top competitors:', topCompetitors);
 
   topCompetitors.forEach((competitor, index) => {
     const data = historyData.map(entry => {
@@ -290,10 +293,12 @@ function renderDomainHistoryChart(historyData, currentDomain) {
 
   // Destroy existing chart if it exists
   if (window.userHistoryChart) {
+    console.log('Destroying existing chart');
     window.userHistoryChart.destroy();
   }
 
   try {
+    console.log('Creating new chart');
     // Create new chart
     window.userHistoryChart = new Chart(ctx, {
       type: 'line',
