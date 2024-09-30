@@ -199,6 +199,7 @@ function displayResults(data) {
   `;
 }
 
+// Update fetchDomainHistory function
 async function fetchDomainHistory(domain) {
   try {
     const response = await fetchWithAuth(`/api/get-history?domain=${encodeURIComponent(domain)}`);
@@ -219,7 +220,7 @@ async function fetchDomainHistory(domain) {
       return;
     }
     
-    renderDomainHistoryChart(historyData, domain);
+    renderDomainHistoryChart(historyData, domain);  // Pass domain as the second argument
     displaySearchHistory(historyData);
   } catch (error) {
     console.error('Error fetching domain history:', error);
@@ -283,57 +284,53 @@ function renderDomainHistoryChart(historyData, currentDomain) {
   chartContainer.style.display = 'block';
 
   // Group and average data by date
-  const groupedData = {};
-  historyData.forEach(entry => {
+  const groupedData = historyData.reduce((acc, entry) => {
     const date = new Date(entry.date).toLocaleDateString();
-    if (!groupedData[date]) {
-      groupedData[date] = { rankings: {}, count: 0 };
+    if (!acc[date]) {
+      acc[date] = { rankings: {}, count: 0 };
     }
     entry.rankings.forEach((competitor, index) => {
-      if (!groupedData[date].rankings[competitor]) {
-        groupedData[date].rankings[competitor] = 0;
+      if (!acc[date].rankings[competitor]) {
+        acc[date].rankings[competitor] = 0;
       }
-      groupedData[date].rankings[competitor] += index + 1;
+      acc[date].rankings[competitor] += index + 1;
     });
-    groupedData[date].count++;
-  });
+    acc[date].count++;
+    return acc;
+  }, {});
 
-  // Calculate averages and prepare data for the chart
-  const labels = [];
-  const datasets = {};
-  Object.entries(groupedData).forEach(([date, data]) => {
-    labels.push(date);
-    Object.entries(data.rankings).forEach(([competitor, sum]) => {
-      if (!datasets[competitor]) {
-        datasets[competitor] = { label: competitor, data: [] };
-      }
-      datasets[competitor].data.push(sum / data.count);
-    });
-  });
-
-  // Sort competitors by their average ranking
-  const sortedCompetitors = Object.keys(datasets).sort((a, b) => {
-    const avgA = datasets[a].data.reduce((sum, val) => sum + val, 0) / datasets[a].data.length;
-    const avgB = datasets[b].data.reduce((sum, val) => sum + val, 0) / datasets[b].data.length;
-    return avgA - avgB;
-  });
-
-  // Take top 10 competitors and the current domain
-  const topCompetitors = sortedCompetitors.slice(0, 9);
-  if (!topCompetitors.includes(currentDomain)) {
-    topCompetitors.unshift(currentDomain);
-  }
-
-  const chartDatasets = topCompetitors.map((competitor, index) => ({
-    ...datasets[competitor],
-    borderColor: getColorScheme(index),
-    backgroundColor: getColorScheme(index) + '20',
-    fill: false,
-    borderWidth: competitor === currentDomain ? 3 : 2,
-    pointRadius: competitor === currentDomain ? 5 : 3,
-    pointHoverRadius: 8,
-    hidden: index >= 5 && competitor !== currentDomain, // Hide datasets beyond top 5 initially
+  // Calculate averages
+  const averagedData = Object.entries(groupedData).map(([date, data]) => ({
+    date,
+    rankings: Object.fromEntries(
+      Object.entries(data.rankings).map(([competitor, sum]) => [competitor, sum / data.count])
+    )
   }));
+
+  // Sort by date
+  averagedData.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  // Get all unique competitors
+  const allCompetitors = [...new Set(averagedData.flatMap(entry => Object.keys(entry.rankings)))];
+
+  // Prepare datasets
+  const datasets = allCompetitors.map((competitor, index) => {
+    const data = averagedData.map(entry => entry.rankings[competitor] || null);
+    return {
+      label: competitor,
+      data: data,
+      borderColor: getColorScheme(index),
+      backgroundColor: getColorScheme(index) + '20',
+      fill: false,
+      borderWidth: competitor === currentDomain ? 3 : 2,
+      pointRadius: competitor === currentDomain ? 5 : 3,
+      pointHoverRadius: 8,
+      hidden: index >= 5 && competitor !== currentDomain, // Hide datasets beyond top 5 initially
+    };
+  });
+
+  // Prepare labels (dates)
+  const labels = averagedData.map(entry => entry.date);
 
   // Destroy existing chart if it exists
   if (window.userHistoryChart) {
@@ -345,7 +342,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     type: 'line',
     data: {
       labels: labels,
-      datasets: chartDatasets,
+      datasets: datasets,
     },
     options: {
       responsive: true,
@@ -398,7 +395,7 @@ function renderDomainHistoryChart(historyData, currentDomain) {
     },
   });
 
-  createLegendButtons(topCompetitors, window.userHistoryChart);
+  createLegendButtons(allCompetitors, window.userHistoryChart);
 }
 
 // Add CSV export functionality
