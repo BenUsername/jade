@@ -76,6 +76,28 @@ Please tell me the top 20 prompts where you think this company would like to ran
   return keywordPrompts;
 }
 
+async function queryLLM(keywords) {
+    const prompt = `Generate SEO recommendations for a website targeting the following keywords: ${keywords}. Include suggestions for content, meta tags, and internal linking.`;
+
+    try {
+        const response = await openai.createCompletion({
+            model: "text-davinci-002",
+            prompt: prompt,
+            max_tokens: 500,
+            n: 1,
+            stop: null,
+            temperature: 0.7,
+        });
+
+        return response.data.choices[0].text.trim();
+    } catch (error) {
+        console.error('Error querying LLM:', error);
+        throw error;
+    }
+}
+
+module.exports = { queryLLM };
+
 export default authenticate(async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
