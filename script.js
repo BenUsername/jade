@@ -237,41 +237,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const resultDiv = document.getElementById('result');
     
-    if (!data || !data.keywordPrompts || !data.topPromptsResults) {
+    if (!data || !Array.isArray(data.result)) {
       console.error('Invalid data format:', data);
       resultDiv.innerHTML = 'An error occurred while processing the results.';
       return;
     }
 
-    console.log('keywordPrompts:', data.keywordPrompts);
-    console.log('topPromptsResults:', data.topPromptsResults);
+    const keywords = data.result;
 
-    resultDiv.innerHTML = `
-      <h2>Results for ${data.domain}</h2>
-      <h3>Top 5 Keyword Prompts Analysis:</h3>
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>Prompt</th>
-            <th>Response</th>
-            <th>Score</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.topPromptsResults.map(result => `
-            <tr>
-              <td>${result.prompt}</td>
-              <td>${result.response}</td>
-              <td>${result.score}/10</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      <h3>All Keyword Prompts:</h3>
-      <ol>
-        ${data.keywordPrompts.map(prompt => `<li>${prompt}</li>`).join('')}
-      </ol>
-    `;
+    // Display the keywords
+    resultDiv.innerHTML = '<h2>Keyword Prompts:</h2><ul>';
+    keywords.forEach(item => {
+      resultDiv.innerHTML += `<li>${item}</li>`;
+    });
+    resultDiv.innerHTML += '</ul>';
 
     console.log('Results displayed successfully');
   }
