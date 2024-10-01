@@ -106,8 +106,8 @@ async function scoreResponse(domain, response) {
   return isNaN(score) ? 0 : score;
 }
 
-export default authenticate(async function handler(req, res) {
-  if (req.method === 'POST') {
+export default async function handler(req, res) {
+  if (req.method === 'POST' && req.url === '/api/query-llm') {
     const { domain } = req.body;
     const userId = req.userId;
 
@@ -139,13 +139,18 @@ export default authenticate(async function handler(req, res) {
       console.error('Error processing request:', error);
       res.status(500).json({ error: 'Failed to process request', details: error.message });
     }
+  } else if (req.method === 'POST' && req.url === '/api/login') {
+    return login(req, res);
+  } else if (req.method === 'POST' && req.url === '/api/register') {
+    return register(req, res);
+  } else if (req.method === 'GET' && req.url === '/api/get-history') {
+    return getHistory(req, res);
   } else {
     res.status(405).json({ error: 'Method not allowed' });
   }
-});
+}
 
-// Add authentication routes
-export async function register(req, res) {
+async function register(req, res) {
   try {
     await dbConnect();
     const { username, email, password } = req.body;
@@ -158,30 +163,31 @@ export async function register(req, res) {
   }
 }
 
-export async function login(req, res) {
+async function login(req, res) {
   try {
     await dbConnect();
     const { username, password } = req.body;
     const user = await User.findOne({ username });
     if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 }
 
-export async function getHistory(req, res) {
+async function getHistory(req, res) {
   try {
     await dbConnect();
-    const history = await RankingHistory.find({ userId: req.userId });
-    res.json(history);
+    // You need to implement authentication middleware to get the userId
+    // For now, we'll just return an empty array
+    res.json([]);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
