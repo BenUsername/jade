@@ -2,7 +2,10 @@ import authenticate from '../middleware/auth';
 import OpenAI from 'openai';
 import dbConnect from '../lib/dbConnect';
 import RankingHistory from '../models/RankingHistory';
+import User from '../models/User';
 import https from 'https';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -103,38 +106,83 @@ async function scoreResponse(domain, response) {
   return isNaN(score) ? 0 : score;
 }
 
-module.exports = async function queryLLMHandler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-  
-  const { domain } = req.body;
+export default authenticate(async function handler(req, res) {
+  if (req.method === 'POST') {
+    const { domain } = req.body;
+    const userId = req.userId;
 
-  if (!domain) {
-    return res.status(400).json({ error: 'Domain is required' });
-  }
+    if (!domain) {
+      return res.status(400).json({ error: 'Domain is required' });
+    }
 
-  if (!isValidDomain(domain)) {
-    return res.status(400).json({ error: 'Invalid domain format' });
-  }
+    if (!isValidDomain(domain)) {
+      return res.status(400).json({ error: 'Invalid domain format' });
+    }
 
+    try {
+      await dbConnect();
+      const webContent = await fetchWebContent(domain);
+      const keywordPrompts = await generateKeywordPrompts(domain, webContent);
+      const topPromptsResults = await queryTopPrompts(domain, keywordPrompts);
+
+      const rankingHistory = new RankingHistory({
+        userId,
+        domain,
+        keywordPrompts,
+        topPromptsResults,
+        date: new Date(),
+      });
+      await rankingHistory.save();
+
+      res.status(200).json({ domain, keywordPrompts, topPromptsResults });
+    } catch (error) {
+      console.error('Error processing request:', error);
+      res.status(500).json({ error: 'Failed to process request', details: error.message });
+    }
+  } else {
+    res.status(405).json({ error: 'Method not allowed' });
+  }
+});
+
+// Add authentication routes
+export async function register(req, res) {
   try {
-    const webContent = await fetchWebContent(domain);
-    res.status(202).json({ message: "Content fetched. Starting analysis." });
-
-    // Start analysis in background
-    analyzeContent(domain, webContent).catch(console.error);
+    await dbConnect();
+    const { username, email, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ username, email, password: hashedPassword });
+    await user.save();
+    res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
-    console.error('Error processing request:', error);
-    res.status(500).json({ error: 'Failed to fetch content', details: error.message });
+    res.status(400).json({ error: error.message });
   }
-};
+}
 
-async function analyzeContent(domain, webContent) {
-  const keywordPrompts = await generateKeywordPrompts(domain, webContent);
-  const topPromptsResults = await queryTopPrompts(domain, keywordPrompts);
+export async function login(req, res) {
+  try {
+    await dbConnect();
+    const { username, password } = req.body;
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+    res.json({ token });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+}
 
-  // Here you would typically save results to a database
-  // Since we've removed the database operations, we'll just log the results
-  console.log('Analysis complete:', { domain, keywordPrompts, topPromptsResults });
+export async function getHistory(req, res) {
+  try {
+    await dbConnect();
+    const history = await RankingHistory.find({ userId: req.userId });
+    res.json(history);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 }

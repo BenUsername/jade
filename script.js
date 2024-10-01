@@ -47,6 +47,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Add this function at the beginning of your script.js file
+  async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
   // Registration
   document.getElementById('register-form').addEventListener('submit', async function (e) {
     e.preventDefault();
@@ -58,8 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const password = document.getElementById('register-password').value.trim();
 
     try {
-      console.log('Sending registration request...');
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password }),
@@ -101,10 +110,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const username = document.getElementById('login-username').value.trim();
       const password = document.getElementById('login-password').value.trim();
 
-      console.log('Username and password retrieved', { username, password });
+      console.log('Username retrieved:', username);
 
       try {
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password }),
@@ -121,6 +130,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           toastr.error(`Error: ${data.error}`);
           console.log('Login error:', data.error);
+          console.log('Response status:', response.status);
+          console.log('Response headers:', response.headers);
         }
       } catch (error) {
         console.error('Error during login:', error);
@@ -248,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update fetchDomainHistory function
   async function fetchDomainHistory(domain) {
     try {
-      const response = await fetchWithAuth(`/api/get-history?domain=${encodeURIComponent(domain)}`);
+      const response = await fetchWithAuth('/api/get-history');
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -521,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update fetchBrandHistory to fetchDomainHistory
   async function fetchDomainHistory(domain) {
     try {
-      const response = await fetchWithAuth(`/api/get-history?domain=${encodeURIComponent(domain)}`);
+      const response = await fetchWithAuth('/api/get-history');
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -599,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update fetchDomainHistory function
   async function fetchDomainHistory(domain) {
     try {
-      const response = await fetchWithAuth(`/api/get-history?domain=${encodeURIComponent(domain)}`);
+      const response = await fetchWithAuth('/api/get-history');
 
       if (!response.ok) {
         const errorText = await response.text();
