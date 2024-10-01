@@ -228,6 +228,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function displayResults(data) {
     console.log('Data received in displayResults:', data);
+    console.log('Type of data:', typeof data);
+    console.log('Type of data.result:', typeof data.result);
+    console.log('Is data.result an array?', Array.isArray(data.result));
+    console.log('Instance of Array:', data.result instanceof Array);
+    console.log('Contents of data.result:', data.result);
+    console.log('data.result.length:', data.result ? data.result.length : 'undefined');
+
     const resultDiv = document.getElementById('result');
     
     if (!data || !data.keywordPrompts || !data.topPromptsResults) {
@@ -235,6 +242,9 @@ document.addEventListener('DOMContentLoaded', () => {
       resultDiv.innerHTML = 'An error occurred while processing the results.';
       return;
     }
+
+    console.log('keywordPrompts:', data.keywordPrompts);
+    console.log('topPromptsResults:', data.topPromptsResults);
 
     resultDiv.innerHTML = `
       <h2>Results for ${data.domain}</h2>
@@ -262,6 +272,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ${data.keywordPrompts.map(prompt => `<li>${prompt}</li>`).join('')}
       </ol>
     `;
+
+    console.log('Results displayed successfully');
   }
 
   async function pollForResults(domain) {
