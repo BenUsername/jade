@@ -1,7 +1,7 @@
 const OpenAI = require('openai');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
-const { Queue } = require('bullmq');
+const { Queue, Job } = require('bullmq');
 const Redis = require('ioredis');
 
 const openai = new OpenAI({
@@ -10,9 +10,9 @@ const openai = new OpenAI({
 
 // Create a new Redis client
 const redisClient = new Redis({
-  host: process.env.REDIS_HOST,
-  port: parseInt(process.env.REDIS_PORT, 10),
-  password: process.env.REDIS_PASSWORD
+  host: process.env.REDIS_HOST.trim(),
+  port: parseInt(process.env.REDIS_PORT.trim(), 10),
+  password: process.env.REDIS_PASSWORD.trim()
 });
 
 // Create a BullMQ queue
@@ -54,19 +54,27 @@ module.exports = async function handler(req, res) {
     const { jobId } = req.query;
 
     if (!jobId) {
-      return res.status(400).json({ error: 'Missing jobId' });
+      return res.status(400).json({ error: 'Missing jobId parameter' });
     }
 
     try {
-      const result = await redisClient.get(`jobResult:${jobId}`);
+      const job = await Job.fromId(queue, jobId);
 
-      if (!result) {
-        return res.status(202).json({ status: 'Processing' });
+      if (job) {
+        const progress = job.progress || 0;
+
+        // Check if job is completed
+        const resultData = await redisClient.get(`jobResult:${jobId}`);
+
+        if (resultData) {
+          const result = JSON.parse(resultData);
+          return res.status(200).json({ progress: 100, result });
+        } else {
+          return res.status(202).json({ progress });
+        }
+      } else {
+        return res.status(404).json({ error: 'Job not found' });
       }
-
-      const parsedResult = JSON.parse(result);
-      console.log('Job result:', parsedResult);
-      res.status(200).json(parsedResult);
     } catch (error) {
       console.error('Error retrieving job result:', error);
       res.status(500).json({ error: 'Failed to retrieve job result', details: error.message });

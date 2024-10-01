@@ -193,41 +193,59 @@ document.addEventListener('DOMContentLoaded', () => {
     return data.jobId;
   }
 
-  async function pollJobResult(jobId) {
-    let result = null;
-    while (!result) {
+  async function handleDomainSubmission(domain) {
+    try {
+      const jobId = await submitDomain(domain);
+      
+      // Show the progress bar
+      const progressContainer = document.getElementById('progress-container');
+      const progressBar = document.getElementById('progress-bar');
+      const progressText = document.getElementById('progress-text');
+      progressContainer.style.display = 'block';
+
+      // Start polling for job progress
+      await pollJobProgress(jobId);
+    } catch (error) {
+      console.error('Error in handleDomainSubmission:', error);
+      toastr.error('An error occurred while processing your request. Please try again.');
+    } finally {
+      document.getElementById('loading').style.display = 'none';
+    }
+  }
+
+  async function pollJobProgress(jobId) {
+    try {
       const response = await fetchWithAuth(`/api/query-llm?jobId=${jobId}`);
       const data = await response.json();
 
       if (response.status === 200) {
-        result = data;
+        // Job completed
+        displayResults(data.result);
+        // Hide progress bar
+        const progressContainer = document.getElementById('progress-container');
+        progressContainer.style.display = 'none';
       } else if (response.status === 202) {
-        // Job is still processing
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before polling again
+        // Update progress bar
+        const progress = data.progress || 0;
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        progressBar.style.width = `${progress}%`;
+        progressText.textContent = `Processing: ${progress}%`;
+
+        // Continue polling
+        setTimeout(() => pollJobProgress(jobId), 2000);
       } else {
         // Handle error
-        throw new Error(data.error || 'Failed to fetch job result');
-      }
-    }
-    return result;
-  }
-
-  async function handleDomainSubmission(domain) {
-    try {
-      const jobId = await submitDomain(domain);
-      const result = await pollJobResult(jobId);
-      if (result) {
-        console.log('Data received in handleDomainSubmission:', result);
-        displayResults(result);
+        toastr.error('An error occurred while processing your request.');
       }
     } catch (error) {
-      console.error('Error in handleDomainSubmission:', error);
-      toastr.error('An error occurred while processing your request. Please try again.');
+      console.error('Error polling job progress:', error);
+      toastr.error('An error occurred while processing your request.');
     }
   }
 
   function displayResults(data) {
-    const keywordData = data.keywordData;
+    const keywordData = data.keywordData || data.topPromptsResults;
 
     const resultsContainer = document.getElementById('results-container');
     resultsContainer.innerHTML = '';
@@ -252,10 +270,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const row = document.createElement('tr');
 
       const keywordCell = document.createElement('td');
-      keywordCell.textContent = item.keyword;
+      keywordCell.textContent = item.keyword || item.prompt;
 
       const promptCell = document.createElement('td');
-      promptCell.textContent = item.prompt;
+      promptCell.textContent = item.prompt || '';
 
       const scoreCell = document.createElement('td');
       scoreCell.textContent = item.score;
