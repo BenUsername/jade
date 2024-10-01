@@ -1,6 +1,9 @@
 {
   "name": "jade",
   "version": "1.0.0",
+  "engines": {
+    "node": "16.x"
+  },
   "scripts": {
     "start": "node api/query-llm.js",
     "worker": "node worker.js"

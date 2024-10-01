@@ -61,37 +61,36 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('register-form').addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    document.getElementById('loading').style.display = 'block';  // Show loading spinner
+    document.getElementById('loading').style.display = 'block';
 
     const username = document.getElementById('register-username').value.trim();
     const email = document.getElementById('register-email').value.trim();
     const password = document.getElementById('register-password').value.trim();
 
     try {
-      const response = await fetch('/api/register', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password }),
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Registration error:', errorText);
+        toastr.error(`Error: ${response.status} ${response.statusText}`);
+        return;
+      }
+
       const data = await response.json();
       console.log('Registration response:', data);
 
-      if (response.ok) {
-        toastr.success(data.message || 'Registration successful! You can now log in.');
-        // Clear the form
-        document.getElementById('register-form').reset();
-      } else {
-        toastr.error(`Error: ${data.error}`);
-        if (data.details) {
-          console.error('Error details:', data.details);
-        }
-      }
+      toastr.success(data.message || 'Registration successful! You can now log in.');
+      document.getElementById('register-form').reset();
     } catch (error) {
       console.error('Error:', error);
       toastr.error('An unexpected error occurred during registration.');
     } finally {
-      document.getElementById('loading').style.display = 'none';  // Hide loading spinner
+      document.getElementById('loading').style.display = 'none';
     }
   });
 
@@ -107,26 +106,30 @@ document.addEventListener('DOMContentLoaded', () => {
       const password = document.getElementById('login-password').value.trim();
 
       try {
-        const response = await fetch('/api/auth/login', {  // Updated URL
+        const response = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password }),
         });
 
         if (!response.ok) {
-          throw new Error('Login failed');
+          const errorText = await response.text();
+          console.error('Login error:', errorText);
+          toastr.error(`Error: ${response.status} ${response.statusText}`);
+          return;
         }
 
         const data = await response.json();
-        // Handle successful login (e.g., store token, update UI)
-        console.log('Login successful:', data);
+        console.log('Login response received:', data);
+
+        // Handle successful login
         authToken = data.token;
         localStorage.setItem('authToken', data.token);
         updateUIForLoggedInUser();
+        toastr.success('Login successful!');
       } catch (error) {
-        console.error('Login error:', error);
-        // Handle login error (e.g., show error message to user)
-        toastr.error('Login failed. Please check your credentials and try again.');
+        console.error('Error during login:', error);
+        toastr.error('An unexpected error occurred during login.');
       }
     });
   } else {

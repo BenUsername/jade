@@ -1,8 +1,8 @@
-import OpenAI from 'openai';
-import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
-import { Queue } from 'bullmq';
-import { Redis } from 'ioredis';
+const OpenAI = require('openai');
+const axios = require('axios');
+const { v4: uuidv4 } = require('uuid');
+const { Queue } = require('bullmq');
+const Redis = require('ioredis');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -25,7 +25,7 @@ async function enqueueJob({ jobId, domain }) {
   await jobQueue.add('process-domain', { domain }, { jobId });
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method === 'POST') {
     const { domain } = req.body;
 
@@ -63,4 +63,4 @@ export default async function handler(req, res) {
   } else {
     res.status(405).json({ error: 'Method not allowed' });
   }
-}
+};
