@@ -63,14 +63,17 @@ module.exports = async function handler(req, res) {
       if (job) {
         const progress = job.progress || 0;
 
+        // Retrieve job logs
+        const logs = await job.getLogs();
+
         // Check if job is completed
         const resultData = await redisClient.get(`jobResult:${jobId}`);
 
         if (resultData) {
           const result = JSON.parse(resultData);
-          return res.status(200).json({ progress: 100, result });
+          return res.status(200).json({ progress: 100, logs, result });
         } else {
-          return res.status(202).json({ progress });
+          return res.status(202).json({ progress, logs });
         }
       } else {
         return res.status(404).json({ error: 'Job not found' });

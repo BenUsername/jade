@@ -224,6 +224,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Hide progress bar
         const progressContainer = document.getElementById('progress-container');
         progressContainer.style.display = 'none';
+        // Display final logs
+        displayLogs(data.logs);
       } else if (response.status === 202) {
         // Update progress bar
         const progress = data.progress || 0;
@@ -232,16 +234,29 @@ document.addEventListener('DOMContentLoaded', () => {
         progressBar.style.width = `${progress}%`;
         progressText.textContent = `Processing: ${progress}%`;
 
+        // Display logs
+        displayLogs(data.logs);
+
         // Continue polling
         setTimeout(() => pollJobProgress(jobId), 2000);
       } else {
-        // Handle error
         toastr.error('An error occurred while processing your request.');
       }
     } catch (error) {
       console.error('Error polling job progress:', error);
       toastr.error('An error occurred while processing your request.');
     }
+  }
+
+  function displayLogs(logs) {
+    const logsContainer = document.getElementById('logs-container');
+    logsContainer.innerHTML = ''; // Clear previous logs
+
+    logs.forEach(log => {
+      const logItem = document.createElement('div');
+      logItem.textContent = log;
+      logsContainer.appendChild(logItem);
+    });
   }
 
   function displayResults(data) {
