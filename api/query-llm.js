@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -9,6 +10,33 @@ const openai = new OpenAI({
 function isValidDomain(domain) {
   const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i;
   return domainRegex.test(domain);
+}
+
+function generateUniqueId() {
+  return uuidv4();
+}
+
+async function enqueueJob({ jobId, domain }) {
+  // This is a placeholder function. You'll need to implement your own job queue system.
+  // For example, you might use a database or a message queue service.
+  console.log(`Job ${jobId} for domain ${domain} enqueued`);
+  // Start the background process
+  processJob(jobId, domain).catch(console.error);
+}
+
+async function processJob(jobId, domain) {
+  try {
+    const webContent = await fetchWebContent(domain);
+    const keywordPrompts = await generateKeywordPrompts(domain, webContent);
+    const topPromptsResults = await queryTopPrompts(domain, keywordPrompts);
+
+    // Store the results (you'll need to implement this)
+    await storeJobResults(jobId, { domain, keywordPrompts, topPromptsResults });
+  } catch (error) {
+    console.error(`Error processing job ${jobId}:`, error);
+    // Store the error (you'll need to implement this)
+    await storeJobError(jobId, error.message);
+  }
 }
 
 async function fetchWebContent(domain) {
@@ -60,6 +88,16 @@ async function queryTopPrompts(domain, prompts) {
   return results;
 }
 
+async function storeJobResults(jobId, results) {
+  // Implement this function to store job results
+  console.log(`Storing results for job ${jobId}`);
+}
+
+async function storeJobError(jobId, error) {
+  // Implement this function to store job errors
+  console.log(`Storing error for job ${jobId}: ${error}`);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -72,18 +110,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const webContentPromise = fetchWebContent(domain);
-    const webContent = await webContentPromise;
+    // Generate a unique job ID
+    const jobId = generateUniqueId();
 
-    const keywordPromptsPromise = generateKeywordPrompts(domain, webContent);
-    const keywordPrompts = await keywordPromptsPromise;
+    // Enqueue the job in your background processing system
+    await enqueueJob({ jobId, domain });
 
-    const topPromptsResultsPromise = queryTopPrompts(domain, keywordPrompts);
-    const topPromptsResults = await topPromptsResultsPromise;
-
-    res.status(200).json({ domain, keywordPrompts, topPromptsResults });
+    // Return immediate response with job ID
+    res.status(202).json({ message: 'Job accepted', jobId });
   } catch (error) {
     console.error('Error processing request:', error);
-    res.status(500).json({ error: 'Failed to process request', details: error.message });
+    res.status(500).json({ error: 'Failed to enqueue job', details: error.message });
   }
 }
