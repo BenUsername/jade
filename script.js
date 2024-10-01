@@ -199,31 +199,27 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ domain }),
       });
 
-      const reader = response.body.getReader();
-      let partialData = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        partialData += new TextDecoder().decode(value);
-        
-        try {
-          const jsonData = JSON.parse(partialData);
-          if (jsonData.status) {
-            resultDiv.innerHTML += `<p>${jsonData.status}</p>`;
-          } else if (jsonData.domain) {
-            displayResults(jsonData);
-            break;
-          }
-        } catch (e) {
-          // Incomplete JSON, continue reading
-        }
+      if (!response.ok) {
+        throw new Error(await response.text());
       }
+
+      const data = await response.json();
+      displayResults(data);
     } catch (error) {
       console.error('Error:', error);
       resultDiv.innerHTML = `Error: ${error.message}`;
     }
+  }
+
+  function displayResults(data) {
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = `
+      <h2>Results for ${data.domain}</h2>
+      <h3>Keyword Prompts:</h3>
+      <ol>
+        ${data.keywordPrompts.map(prompt => `<li>${prompt}</li>`).join('')}
+      </ol>
+    `;
   }
 
   async function pollForResults(domain) {
