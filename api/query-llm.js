@@ -109,7 +109,6 @@ module.exports = async function handler(req, res) {
   }
   
   const { domain } = req.body;
-  const userId = req.userId;
 
   if (!domain) {
     return res.status(400).json({ error: 'Domain is required' });
@@ -124,26 +123,18 @@ module.exports = async function handler(req, res) {
     res.status(202).json({ message: "Content fetched. Starting analysis." });
 
     // Start analysis in background
-    analyzeContent(domain, webContent, userId).catch(console.error);
+    analyzeContent(domain, webContent).catch(console.error);
   } catch (error) {
     console.error('Error processing request:', error);
     res.status(500).json({ error: 'Failed to fetch content', details: error.message });
   }
 };
 
-async function analyzeContent(domain, webContent, userId) {
+async function analyzeContent(domain, webContent) {
   const keywordPrompts = await generateKeywordPrompts(domain, webContent);
   const topPromptsResults = await queryTopPrompts(domain, keywordPrompts);
 
-  // Save results to database
-  await dbConnect();
-  const rankingHistory = new RankingHistory({
-    userId,
-    domain,
-    keywordPrompts,
-    topPromptsResults,
-    date: new Date(),
-    service: 'Not specified',
-  });
-  await rankingHistory.save();
+  // Here you would typically save results to a database
+  // Since we've removed the database operations, we'll just log the results
+  console.log('Analysis complete:', { domain, keywordPrompts, topPromptsResults });
 }

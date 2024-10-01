@@ -1,9 +1,9 @@
 {
   "name": "jade",
   "version": "1.0.0",
-  "main": "script.js",
   "scripts": {
-    "start": "node extension-server.js"
+    "start": "node api/server.js",
+    "build": "mkdir -p public && cp index.html script.js public/"
   },
   "keywords": [],
   "author": "",
