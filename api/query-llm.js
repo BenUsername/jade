@@ -64,7 +64,9 @@ module.exports = async function handler(req, res) {
         return res.status(202).json({ status: 'Processing' });
       }
 
-      res.status(200).json(JSON.parse(result));
+      const parsedResult = JSON.parse(result);
+      console.log('Job result:', parsedResult);
+      res.status(200).json(parsedResult);
     } catch (error) {
       console.error('Error retrieving job result:', error);
       res.status(500).json({ error: 'Failed to retrieve job result', details: error.message });

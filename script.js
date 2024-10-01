@@ -213,15 +213,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function handleDomainSubmission(domain) {
-    const jobId = await submitDomain(domain);
-    const result = await pollJobResult(jobId);
-    if (result) {
-      displayResults(result);
+    try {
+      const jobId = await submitDomain(domain);
+      const result = await pollJobResult(jobId);
+      if (result) {
+        console.log('Data received in handleDomainSubmission:', result);
+        displayResults(result);
+      }
+    } catch (error) {
+      console.error('Error in handleDomainSubmission:', error);
+      toastr.error('An error occurred while processing your request. Please try again.');
     }
   }
 
   function displayResults(data) {
+    console.log('Data received in displayResults:', data);
     const resultDiv = document.getElementById('result');
+    
+    if (!data || !data.keywordPrompts || !data.topPromptsResults) {
+      console.error('Invalid data format:', data);
+      resultDiv.innerHTML = 'An error occurred while processing the results.';
+      return;
+    }
+
     resultDiv.innerHTML = `
       <h2>Results for ${data.domain}</h2>
       <h3>Top 5 Keyword Prompts Analysis:</h3>
