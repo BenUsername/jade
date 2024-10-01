@@ -5,8 +5,7 @@
     "node": "20.x"
   },
   "scripts": {
-    "start": "node api/query-llm.js",
-    "worker": "node worker.js"
+    "start": "node api/query-llm.js"
   },
   "keywords": [],
   "author": "",
