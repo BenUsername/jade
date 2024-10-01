@@ -63,8 +63,8 @@ module.exports = async function handler(req, res) {
       if (job) {
         const progress = job.progress || 0;
 
-        // Retrieve job logs
-        const logs = await job.getLogs();
+        // Retrieve job logs using queue.getJobLogs
+        const logs = await queue.getJobLogs(jobId);
 
         // Check if job is completed
         const resultData = await redisClient.get(`jobResult:${jobId}`);

@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const logsContainer = document.getElementById('logs-container');
     logsContainer.innerHTML = ''; // Clear previous logs
 
-    logs.forEach(log => {
+    logs.logs.forEach((log) => {
       const logItem = document.createElement('div');
       logItem.textContent = log;
       logsContainer.appendChild(logItem);
