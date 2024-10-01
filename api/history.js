@@ -1,21 +1,19 @@
-const dbConnect = require('../lib/dbConnect');
-const Analysis = require('../models/Analysis');
-const authenticate = require('../middleware/auth');
+const mongoose = require('mongoose');
+const ResultModel = require('../models/Result'); // Adjust the path if needed
 
-module.exports = authenticate(async (req, res) => {
-  if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
+module.exports = async function handler(req, res) {
+  if (req.method === 'GET') {
+    try {
+      await mongoose.connect(process.env.MONGODB_URI);
+      const results = await ResultModel.find().sort({ createdAt: -1 }).limit(10);
+      res.status(200).json(results);
+    } catch (error) {
+      console.error('Error fetching history:', error);
+      res.status(500).json({ error: 'Failed to fetch history' });
+    } finally {
+      await mongoose.disconnect();
+    }
+  } else {
+    res.status(405).end();
   }
-
-  try {
-    await dbConnect();
-
-    const analyses = await Analysis.find({ userId: req.userId }).sort({ date: -1 });
-
-    res.status(200).json({ history: analyses });
-  } catch (error) {
-    console.error('Error fetching history:', error.message);
-    res.status(500).json({ error: 'Failed to fetch history' });
-  }
-});
+};

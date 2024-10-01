@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function displayResults(data) {
-    const keywordData = data.keywordData || data.topPromptsResults;
+    const keywordData = data.keywordData;
 
     const resultsContainer = document.getElementById('results-container');
     resultsContainer.innerHTML = '';
@@ -260,27 +260,46 @@ document.addEventListener('DOMContentLoaded', () => {
     promptHeader.textContent = 'Prompt';
     const scoreHeader = document.createElement('th');
     scoreHeader.textContent = 'Score';
+    const competitorsHeader = document.createElement('th');
+    competitorsHeader.textContent = 'Top Competitors';
 
     headerRow.appendChild(keywordHeader);
     headerRow.appendChild(promptHeader);
     headerRow.appendChild(scoreHeader);
+    headerRow.appendChild(competitorsHeader);
     table.appendChild(headerRow);
 
     keywordData.forEach(item => {
       const row = document.createElement('tr');
 
       const keywordCell = document.createElement('td');
-      keywordCell.textContent = item.keyword || item.prompt;
+      keywordCell.textContent = item.keyword;
 
       const promptCell = document.createElement('td');
-      promptCell.textContent = item.prompt || '';
+      const promptDiv = document.createElement('div');
+      promptDiv.style.maxHeight = '50px';
+      promptDiv.style.overflow = 'hidden';
+      promptDiv.style.cursor = 'pointer';
+      promptDiv.textContent = item.prompt;
+      promptDiv.addEventListener('click', function() {
+        if (promptDiv.style.maxHeight === '50px') {
+          promptDiv.style.maxHeight = 'none';
+        } else {
+          promptDiv.style.maxHeight = '50px';
+        }
+      });
+      promptCell.appendChild(promptDiv);
 
       const scoreCell = document.createElement('td');
       scoreCell.textContent = item.score;
 
+      const competitorsCell = document.createElement('td');
+      competitorsCell.textContent = item.competitors ? item.competitors.join(', ') : 'N/A';
+
       row.appendChild(keywordCell);
       row.appendChild(promptCell);
       row.appendChild(scoreCell);
+      row.appendChild(competitorsCell);
 
       table.appendChild(row);
     });
@@ -897,5 +916,80 @@ document.addEventListener('DOMContentLoaded', () => {
               resultDiv.innerHTML = `Error: ${error.message}`;
           }
       });
+  });
+
+  async function loadRankingHistory() {
+    try {
+      const response = await fetchWithAuth('/api/history');
+      const data = await response.json();
+
+      const historyContainer = document.getElementById('history-container');
+      historyContainer.innerHTML = '';
+
+      data.forEach(result => {
+        const resultDiv = document.createElement('div');
+        resultDiv.classList.add('history-item');
+
+        const domainHeader = document.createElement('h3');
+        domainHeader.textContent = `Domain: ${result.domain} (Created at: ${new Date(result.createdAt).toLocaleString()})`;
+        resultDiv.appendChild(domainHeader);
+
+        const table = document.createElement('table');
+        table.className = 'table table-striped';
+        const headerRow = document.createElement('tr');
+
+        const keywordHeader = document.createElement('th');
+        keywordHeader.textContent = 'Keyword';
+        const promptHeader = document.createElement('th');
+        promptHeader.textContent = 'Prompt';
+        const scoreHeader = document.createElement('th');
+        scoreHeader.textContent = 'Score';
+        const competitorsHeader = document.createElement('th');
+        competitorsHeader.textContent = 'Top Competitors';
+
+        headerRow.appendChild(keywordHeader);
+        headerRow.appendChild(promptHeader);
+        headerRow.appendChild(scoreHeader);
+        headerRow.appendChild(competitorsHeader);
+        table.appendChild(headerRow);
+
+        result.keywordData.forEach(item => {
+          const row = document.createElement('tr');
+
+          const keywordCell = document.createElement('td');
+          keywordCell.textContent = item.keyword;
+
+          const promptCell = document.createElement('td');
+          promptCell.textContent = item.prompt;
+
+          const scoreCell = document.createElement('td');
+          scoreCell.textContent = item.score;
+
+          const competitorsCell = document.createElement('td');
+          competitorsCell.textContent = item.competitors ? item.competitors.join(', ') : 'N/A';
+
+          row.appendChild(keywordCell);
+          row.appendChild(promptCell);
+          row.appendChild(scoreCell);
+          row.appendChild(competitorsCell);
+
+          table.appendChild(row);
+        });
+
+        resultDiv.appendChild(table);
+        historyContainer.appendChild(resultDiv);
+      });
+    } catch (error) {
+      console.error('Error loading ranking history:', error);
+      toastr.error('Failed to load ranking history');
+    }
+  }
+
+  // Add this to your existing event listeners
+  document.getElementById('ranking-history-link').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.querySelectorAll('.content-section').forEach(el => el.style.display = 'none');
+    document.getElementById('ranking-history').style.display = 'block';
+    loadRankingHistory();
   });
 });
