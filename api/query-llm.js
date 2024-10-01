@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import https from 'https';
+import axios from 'axios';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -12,23 +12,12 @@ function isValidDomain(domain) {
 }
 
 async function fetchWebContent(domain) {
-  return new Promise((resolve, reject) => {
-    https.get(`https://${domain}`, (res) => {
-      let data = '';
-      res.on('data', (chunk) => {
-        data += chunk;
-        if (data.length > 6000) {
-          res.destroy();
-          resolve(data.substring(0, 6000));
-        }
-      });
-      res.on('end', () => {
-        resolve(data.substring(0, 6000));
-      });
-    }).on('error', (err) => {
-      reject(`Error fetching content for ${domain}: ${err.message}`);
-    });
-  });
+  try {
+    const response = await axios.get(`https://${domain}`, { timeout: 5000 });
+    return response.data.substring(0, 6000);
+  } catch (error) {
+    throw new Error(`Error fetching content for ${domain}: ${error.message}`);
+  }
 }
 
 async function generateKeywordPrompts(domain, webContent) {
@@ -46,38 +35,23 @@ async function generateKeywordPrompts(domain, webContent) {
 }
 
 async function queryTopPrompts(domain, prompts) {
-  const results = [];
-  for (const prompt of prompts.slice(0, 5)) {
+  const topPrompts = prompts.slice(0, 5);
+  const results = await Promise.all(topPrompts.map(async (prompt) => {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a helpful assistant." },
+        { role: "system", content: `You are an SEO expert assistant. Provide a response to the following prompt, and then, on a new line, rate how well the domain "${domain}" ranks in this response on a scale of 0 to 10.` },
         { role: "user", content: prompt }
       ],
-      max_tokens: 50,
+      max_tokens: 100,
       temperature: 0,
     });
 
-    const response = completion.choices[0].message.content.trim();
-    const score = await scoreResponse(domain, response);
-    results.push({ prompt, response, score });
-  }
+    const [response, scoreLine] = completion.choices[0].message.content.trim().split('\n');
+    const score = parseInt(scoreLine);
+    return { prompt, response: response.trim(), score: isNaN(score) ? 0 : score };
+  }));
   return results;
-}
-
-async function scoreResponse(domain, response) {
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: "You are an SEO expert assistant." },
-      { role: "user", content: `On a scale of 0 to 10, how well does the domain "${domain}" rank in this response? Only provide a number as your answer.\n\nResponse: ${response}` }
-    ],
-    max_tokens: 5,
-    temperature: 0,
-  });
-
-  const score = parseInt(completion.choices[0].message.content.trim());
-  return isNaN(score) ? 0 : score;
 }
 
 export default async function handler(req, res) {
@@ -92,9 +66,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const webContent = await fetchWebContent(domain);
-    const keywordPrompts = await generateKeywordPrompts(domain, webContent);
-    const topPromptsResults = await queryTopPrompts(domain, keywordPrompts);
+    const webContentPromise = fetchWebContent(domain);
+    const webContent = await webContentPromise;
+
+    const keywordPromptsPromise = generateKeywordPrompts(domain, webContent);
+    const keywordPrompts = await keywordPromptsPromise;
+
+    const topPromptsResultsPromise = queryTopPrompts(domain, keywordPrompts);
+    const topPromptsResults = await topPromptsResultsPromise;
 
     res.status(200).json({ domain, keywordPrompts, topPromptsResults });
   } catch (error) {
