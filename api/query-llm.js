@@ -107,9 +107,8 @@ async function scoreResponse(domain, response) {
 }
 
 export default async function handler(req, res) {
-  if (req.method === 'POST' && req.url === '/api/query-llm') {
+  if (req.method === 'POST') {
     const { domain } = req.body;
-    const userId = req.userId;
 
     if (!domain) {
       return res.status(400).json({ error: 'Domain is required' });
@@ -120,31 +119,26 @@ export default async function handler(req, res) {
     }
 
     try {
-      await dbConnect();
-      const webContent = await fetchWebContent(domain);
-      const keywordPrompts = await generateKeywordPrompts(domain, webContent);
-      const topPromptsResults = await queryTopPrompts(domain, keywordPrompts);
-
-      const rankingHistory = new RankingHistory({
-        userId,
-        domain,
-        keywordPrompts,
-        topPromptsResults,
-        date: new Date(),
+      // Send an initial response to prevent timeout
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Transfer-Encoding': 'chunked'
       });
-      await rankingHistory.save();
 
-      res.status(200).json({ domain, keywordPrompts, topPromptsResults });
+      const webContent = await fetchWebContent(domain);
+      res.write(JSON.stringify({ status: 'Content fetched' }));
+
+      const keywordPrompts = await generateKeywordPrompts(domain, webContent);
+      res.write(JSON.stringify({ status: 'Keywords generated' }));
+
+      const topPromptsResults = await queryTopPrompts(domain, keywordPrompts);
+      
+      // Final response
+      res.end(JSON.stringify({ domain, keywordPrompts, topPromptsResults }));
     } catch (error) {
       console.error('Error processing request:', error);
-      res.status(500).json({ error: 'Failed to process request', details: error.message });
+      res.end(JSON.stringify({ error: 'Failed to process request', details: error.message }));
     }
-  } else if (req.method === 'POST' && req.url === '/api/login') {
-    return login(req, res);
-  } else if (req.method === 'POST' && req.url === '/api/register') {
-    return register(req, res);
-  } else if (req.method === 'GET' && req.url === '/api/get-history') {
-    return getHistory(req, res);
   } else {
     res.status(405).json({ error: 'Method not allowed' });
   }

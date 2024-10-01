@@ -189,19 +189,40 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   async function analyzeDomain(domain) {
-    const response = await fetchWithAuth('/api/query-llm', {
-      method: 'POST',
-      body: JSON.stringify({ domain }),
-    });
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = 'Analysis in progress...';
 
-    if (response.status === 202) {
-      // Start polling for results
-      pollForResults(domain);
-    } else if (!response.ok) {
-      throw new Error(await response.text());
-    } else {
-      const data = await response.json();
-      displayResults(data);
+    try {
+      const response = await fetch('/api/query-llm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain }),
+      });
+
+      const reader = response.body.getReader();
+      let partialData = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        partialData += new TextDecoder().decode(value);
+        
+        try {
+          const jsonData = JSON.parse(partialData);
+          if (jsonData.status) {
+            resultDiv.innerHTML += `<p>${jsonData.status}</p>`;
+          } else if (jsonData.domain) {
+            displayResults(jsonData);
+            break;
+          }
+        } catch (e) {
+          // Incomplete JSON, continue reading
+        }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      resultDiv.innerHTML = `Error: ${error.message}`;
     }
   }
 
