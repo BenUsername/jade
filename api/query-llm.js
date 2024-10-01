@@ -27,7 +27,7 @@ async function generateKeywordPrompts(domain, webContent) {
       { role: "system", content: "You are an SEO expert. Generate 10 keyword phrases (2-5 words each) that this website should rank for, based on its content." },
       { role: "user", content: `Website: ${domain}\n\nContent: ${webContent}` }
     ],
-    max_tokens: 50,
+    max_tokens: 20,
     temperature: 0,
   });
 
@@ -40,16 +40,22 @@ async function queryTopPrompts(domain, prompts) {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: `You are an SEO expert assistant. Provide a response to the following prompt, and then, on a new line, rate how well the domain "${domain}" ranks in this response on a scale of 0 to 10.` },
-        { role: "user", content: prompt }
+        {
+          role: "system",
+          content: `You are an SEO expert assistant. Provide a response to the following prompt. Then, on a new line, write "Score: X" where X is how well the domain "${domain}" ranks in this response on a scale of 0 to 10.`,
+        },
+        { role: "user", content: prompt },
       ],
-      max_tokens: 100,
+      max_tokens: 20,
       temperature: 0,
     });
 
-    const [response, scoreLine] = completion.choices[0].message.content.trim().split('\n');
-    const score = parseInt(scoreLine);
-    return { prompt, response: response.trim(), score: isNaN(score) ? 0 : score };
+    const content = completion.choices[0].message.content.trim();
+    const scoreMatch = content.match(/Score:\s*(\d+)/i);
+    const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
+    const response = content.replace(/Score:\s*\d+/i, '').trim();
+
+    return { prompt, response, score };
   }));
   return results;
 }
