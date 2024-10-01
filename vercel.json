@@ -1,17 +1,10 @@
 {
     "version": 2,
-    "builds": [
-        { "src": "api/query-llm.js", "use": "@vercel/node" },
-        { "src": "*.html", "use": "@vercel/static" },
-        { "src": "*.js", "use": "@vercel/static" }
-    ],
-    "routes": [
-        { "src": "/api/(.*)", "dest": "/api/query-llm.js" },
-        { "src": "/(.*)", "dest": "/$1" }
-    ],
     "functions": {
-        "api/query-llm.js": {
-            "maxDuration": 60
-        }
-    }
+        "api/**/*": { "memory": 1024, "maxDuration": 60 }
+    },
+    "routes": [
+        { "src": "/api/(.*)", "dest": "/api/$1.js" },
+        { "src": "/(.*)", "dest": "/$1" }
+    ]
 }
