@@ -1,15 +1,34 @@
 const OpenAI = require('openai');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
+const { createClient } = require('redis');
 const { Queue } = require('bullmq');
-const Redis = require('ioredis');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const connection = new Redis(process.env.REDIS_URL);
-const jobQueue = new Queue('seo-jobs', { connection });
+// Create a new Redis client with environment variables
+const client = createClient({
+  password: process.env.REDIS_PASSWORD,
+  socket: {
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT, 10)
+  }
+});
+
+client.on('error', (err) => {
+  console.error('Redis Client Error', err);
+});
+
+// Create a BullMQ queue
+const queue = new Queue('seo-jobs', {
+  connection: {
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT, 10),
+    password: process.env.REDIS_PASSWORD
+  }
+});
 
 // Function to validate domain
 function isValidDomain(domain) {
@@ -22,8 +41,17 @@ function generateUniqueId() {
 }
 
 async function enqueueJob({ jobId, domain }) {
-  await jobQueue.add('process-domain', { domain }, { jobId });
+  await queue.add('processDomain', { jobId, domain }, { jobId });
 }
+
+(async () => {
+  try {
+    await client.connect();
+    console.log('Connected to Redis');
+  } catch (err) {
+    console.error('Error connecting to Redis:', err);
+  }
+})();
 
 module.exports = async function handler(req, res) {
   if (req.method === 'POST') {
@@ -49,7 +77,7 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-      const result = await connection.get(`jobResult:${jobId}`);
+      const result = await client.get(`jobResult:${jobId}`);
 
       if (!result) {
         return res.status(202).json({ status: 'Processing' });
