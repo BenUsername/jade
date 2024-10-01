@@ -103,7 +103,7 @@ async function scoreResponse(domain, response) {
   return isNaN(score) ? 0 : score;
 }
 
-module.exports = async function handler(req, res) {
+module.exports = async function queryLLMHandler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
