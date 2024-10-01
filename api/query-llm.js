@@ -1,10 +1,15 @@
 import OpenAI from 'openai';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+import { Queue } from 'bullmq';
+import { Redis } from 'ioredis';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const connection = new Redis(process.env.REDIS_URL);
+const jobQueue = new Queue('seo-jobs', { connection });
 
 // Function to validate domain
 function isValidDomain(domain) {
@@ -17,109 +22,45 @@ function generateUniqueId() {
 }
 
 async function enqueueJob({ jobId, domain }) {
-  // This is a placeholder function. You'll need to implement your own job queue system.
-  // For example, you might use a database or a message queue service.
-  console.log(`Job ${jobId} for domain ${domain} enqueued`);
-  // Start the background process
-  processJob(jobId, domain).catch(console.error);
-}
-
-async function processJob(jobId, domain) {
-  try {
-    const webContent = await fetchWebContent(domain);
-    const keywordPrompts = await generateKeywordPrompts(domain, webContent);
-    const topPromptsResults = await queryTopPrompts(domain, keywordPrompts);
-
-    // Store the results (you'll need to implement this)
-    await storeJobResults(jobId, { domain, keywordPrompts, topPromptsResults });
-  } catch (error) {
-    console.error(`Error processing job ${jobId}:`, error);
-    // Store the error (you'll need to implement this)
-    await storeJobError(jobId, error.message);
-  }
-}
-
-async function fetchWebContent(domain) {
-  try {
-    const response = await axios.get(`https://${domain}`, { timeout: 5000 });
-    return response.data.substring(0, 1000);
-  } catch (error) {
-    throw new Error(`Error fetching content for ${domain}: ${error.message}`);
-  }
-}
-
-async function generateKeywordPrompts(domain, webContent) {
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: "You are an SEO expert. Generate 5 keyword phrases (2-5 words each) that this website should rank for, based on its content." },
-      { role: "user", content: `Website: ${domain}\n\nContent: ${webContent}` }
-    ],
-    max_tokens: 20,
-    temperature: 0,
-  });
-
-  return completion.choices[0].message.content.split('\n').map(line => line.replace(/^\d+\.\s*/, '').trim());
-}
-
-async function queryTopPrompts(domain, prompts) {
-  const topPrompts = prompts.slice(0, 3);
-  const results = await Promise.all(topPrompts.map(async (prompt) => {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `You are an SEO expert assistant. Provide a response to the following prompt. Then, on a new line, write "Score: X" where X is how well the domain "${domain}" ranks in this response on a scale of 0 to 10.`,
-        },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: 20,
-      temperature: 0,
-    });
-
-    const content = completion.choices[0].message.content.trim();
-    const scoreMatch = content.match(/Score:\s*(\d+)/i);
-    const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
-    const response = content.replace(/Score:\s*\d+/i, '').trim();
-
-    return { prompt, response, score };
-  }));
-  return results;
-}
-
-async function storeJobResults(jobId, results) {
-  // Implement this function to store job results
-  console.log(`Storing results for job ${jobId}`);
-}
-
-async function storeJobError(jobId, error) {
-  // Implement this function to store job errors
-  console.log(`Storing error for job ${jobId}: ${error}`);
+  await jobQueue.add('process-domain', { domain }, { jobId });
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'POST') {
+    const { domain } = req.body;
 
-  const { domain } = req.body;
+    if (!domain || !isValidDomain(domain)) {
+      return res.status(400).json({ error: 'Invalid domain' });
+    }
 
-  if (!domain || !isValidDomain(domain)) {
-    return res.status(400).json({ error: 'Invalid domain' });
-  }
+    try {
+      const jobId = generateUniqueId();
+      await enqueueJob({ jobId, domain });
+      res.status(202).json({ message: 'Job accepted', jobId });
+    } catch (error) {
+      console.error('Error processing request:', error);
+      res.status(500).json({ error: 'Failed to enqueue job', details: error.message });
+    }
+  } else if (req.method === 'GET') {
+    const { jobId } = req.query;
 
-  try {
-    // Generate a unique job ID
-    const jobId = generateUniqueId();
+    if (!jobId) {
+      return res.status(400).json({ error: 'Missing jobId' });
+    }
 
-    // Enqueue the job in your background processing system
-    await enqueueJob({ jobId, domain });
+    try {
+      const result = await connection.get(`jobResult:${jobId}`);
 
-    // Return immediate response with job ID
-    res.status(202).json({ message: 'Job accepted', jobId });
-  } catch (error) {
-    console.error('Error processing request:', error);
-    res.status(500).json({ error: 'Failed to enqueue job', details: error.message });
+      if (!result) {
+        return res.status(202).json({ status: 'Processing' });
+      }
+
+      res.status(200).json(JSON.parse(result));
+    } catch (error) {
+      console.error('Error retrieving job result:', error);
+      res.status(500).json({ error: 'Failed to retrieve job result', details: error.message });
+    }
+  } else {
+    res.status(405).json({ error: 'Method not allowed' });
   }
 }

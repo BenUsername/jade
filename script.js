@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('result').innerHTML = '';
 
     try {
-      await analyzeDomain(domain);
+      await handleDomainSubmission(domain);
     } catch (error) {
       console.error('Error:', error);
       toastr.error(`An unexpected error occurred: ${error.message}`);
@@ -188,26 +188,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  async function analyzeDomain(domain) {
-    const resultDiv = document.getElementById('result');
-    resultDiv.innerHTML = 'Analysis in progress...';
+  async function submitDomain(domain) {
+    const response = await fetchWithAuth('/api/query-llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to submit domain');
+    }
+    return data.jobId;
+  }
 
-    try {
-      const response = await fetch('/api/query-llm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain }),
-      });
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
+  async function pollJobResult(jobId) {
+    let result = null;
+    while (!result) {
+      const response = await fetchWithAuth(`/api/query-llm?jobId=${jobId}`);
       const data = await response.json();
-      displayResults(data);
-    } catch (error) {
-      console.error('Error:', error);
-      resultDiv.innerHTML = `Error: ${error.message}`;
+
+      if (response.status === 200) {
+        result = data;
+      } else if (response.status === 202) {
+        // Job is still processing
+        await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before polling again
+      } else {
+        // Handle error
+        throw new Error(data.error || 'Failed to fetch job result');
+      }
+    }
+    return result;
+  }
+
+  async function handleDomainSubmission(domain) {
+    const jobId = await submitDomain(domain);
+    const result = await pollJobResult(jobId);
+    if (result) {
+      displayResults(result);
     }
   }
 
