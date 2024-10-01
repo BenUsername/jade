@@ -10,6 +10,13 @@ app.use(express.json());
 // Mock user database (replace this with your actual database logic)
 const users = [];
 
+// Add this near the top of your file, after defining the users array
+users.push({
+  username: 'testuser',
+  email: 'test@example.com',
+  password: '$2a$10$XQq2o7UDJeJf97aBB/4Oi.QQq2Xl2Xvn9VIwp1bZuMjZW0v5xP2Aq' // hashed password for 'password123'
+});
+
 app.post('/api/auth/register', async (req, res) => {
   const { username, email, password } = req.body;
   
@@ -30,21 +37,25 @@ app.post('/api/auth/register', async (req, res) => {
 
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
+  console.log('Login attempt:', { username, password });
 
   // Find user
   const user = users.find(user => user.username === username);
   if (!user) {
+    console.log('User not found');
     return res.status(400).json({ error: 'Invalid credentials' });
   }
 
   // Check password
   const validPassword = await bcrypt.compare(password, user.password);
+  console.log('Password valid:', validPassword);
   if (!validPassword) {
     return res.status(400).json({ error: 'Invalid credentials' });
   }
 
   // Create and assign token
   const token = jwt.sign({ username: user.username }, 'your_jwt_secret');
+  console.log('Login successful, token created');
   res.json({ token });
 });
 

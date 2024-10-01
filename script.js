@@ -96,12 +96,12 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('Login form submit event triggered');
       e.preventDefault();
 
-      document.getElementById('loading').style.display = 'block';  // Show loading spinner
+      document.getElementById('loading').style.display = 'block';
 
       const username = document.getElementById('login-username').value.trim();
       const password = document.getElementById('login-password').value.trim();
 
-      console.log('Username and password retrieved');
+      console.log('Username and password retrieved', { username, password });
 
       try {
         const response = await fetch('/api/auth/login', {
@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Error during login:', error);
         toastr.error('An unexpected error occurred during login.');
       } finally {
-        document.getElementById('loading').style.display = 'none';  // Hide loading spinner
+        document.getElementById('loading').style.display = 'none';
       }
     });
   } else {
