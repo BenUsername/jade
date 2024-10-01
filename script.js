@@ -227,37 +227,47 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function displayResults(data) {
-    console.log('Data received in displayResults:', data);
-    
-    const resultDiv = document.getElementById('result');
-    
-    if (!data || !data.keywords || !data.keywordPrompts) {
-      console.error('Invalid data format:', data);
-      resultDiv.innerHTML = 'An error occurred while processing the results.';
-      return;
-    }
+    const keywordData = data.keywordData;
 
-    const keywords = data.keywords;
-    const keywordPrompts = data.keywordPrompts;
+    const resultsContainer = document.getElementById('results-container');
+    resultsContainer.innerHTML = '';
 
-    resultDiv.innerHTML = '<h2>Analysis Results:</h2>';
-    const resultsContainer = document.createElement('ul');
-    resultDiv.appendChild(resultsContainer);
+    const table = document.createElement('table');
+    table.className = 'table table-striped';
+    const headerRow = document.createElement('tr');
 
-    keywords.forEach((keyword, index) => {
-      const listItem = document.createElement('li');
-      listItem.textContent = keyword;
-      resultsContainer.appendChild(listItem);
+    const keywordHeader = document.createElement('th');
+    keywordHeader.textContent = 'Keyword';
+    const promptHeader = document.createElement('th');
+    promptHeader.textContent = 'Prompt';
+    const scoreHeader = document.createElement('th');
+    scoreHeader.textContent = 'Score';
 
-      const promptItem = document.createElement('p');
-      promptItem.textContent = keywordPrompts[index];
-      promptItem.style.marginLeft = '20px';
-      promptItem.style.fontSize = '0.9em';
-      promptItem.style.color = '#666';
-      resultsContainer.appendChild(promptItem);
+    headerRow.appendChild(keywordHeader);
+    headerRow.appendChild(promptHeader);
+    headerRow.appendChild(scoreHeader);
+    table.appendChild(headerRow);
+
+    keywordData.forEach(item => {
+      const row = document.createElement('tr');
+
+      const keywordCell = document.createElement('td');
+      keywordCell.textContent = item.keyword;
+
+      const promptCell = document.createElement('td');
+      promptCell.textContent = item.prompt;
+
+      const scoreCell = document.createElement('td');
+      scoreCell.textContent = item.score;
+
+      row.appendChild(keywordCell);
+      row.appendChild(promptCell);
+      row.appendChild(scoreCell);
+
+      table.appendChild(row);
     });
 
-    console.log('Results displayed successfully');
+    resultsContainer.appendChild(table);
   }
 
   async function pollForResults(domain) {
