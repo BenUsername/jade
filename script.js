@@ -228,29 +228,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function displayResults(data) {
     console.log('Data received in displayResults:', data);
-    console.log('Type of data:', typeof data);
-    console.log('Type of data.result:', typeof data.result);
-    console.log('Is data.result an array?', Array.isArray(data.result));
-    console.log('Instance of Array:', data.result instanceof Array);
-    console.log('Contents of data.result:', data.result);
-    console.log('data.result.length:', data.result ? data.result.length : 'undefined');
-
+    
     const resultDiv = document.getElementById('result');
     
-    if (!data || !Array.isArray(data.result)) {
+    if (!data || !data.keywords || !data.keywordPrompts) {
       console.error('Invalid data format:', data);
       resultDiv.innerHTML = 'An error occurred while processing the results.';
       return;
     }
 
-    const keywords = data.result;
+    const keywords = data.keywords;
+    const keywordPrompts = data.keywordPrompts;
 
-    // Display the keywords
-    resultDiv.innerHTML = '<h2>Keyword Prompts:</h2><ul>';
-    keywords.forEach(item => {
-      resultDiv.innerHTML += `<li>${item}</li>`;
+    resultDiv.innerHTML = '<h2>Analysis Results:</h2>';
+    const resultsContainer = document.createElement('ul');
+    resultDiv.appendChild(resultsContainer);
+
+    keywords.forEach((keyword, index) => {
+      const listItem = document.createElement('li');
+      listItem.textContent = keyword;
+      resultsContainer.appendChild(listItem);
+
+      const promptItem = document.createElement('p');
+      promptItem.textContent = keywordPrompts[index];
+      promptItem.style.marginLeft = '20px';
+      promptItem.style.fontSize = '0.9em';
+      promptItem.style.color = '#666';
+      resultsContainer.appendChild(promptItem);
     });
-    resultDiv.innerHTML += '</ul>';
 
     console.log('Results displayed successfully');
   }
