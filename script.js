@@ -215,7 +215,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultDiv = document.getElementById('result');
     resultDiv.innerHTML = `
       <h2>Results for ${data.domain}</h2>
-      <h3>Keyword Prompts:</h3>
+      <h3>Top 5 Keyword Prompts Analysis:</h3>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Prompt</th>
+            <th>Response</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.topPromptsResults.map(result => `
+            <tr>
+              <td>${result.prompt}</td>
+              <td>${result.response}</td>
+              <td>${result.score}/10</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <h3>All Keyword Prompts:</h3>
       <ol>
         ${data.keywordPrompts.map(prompt => `<li>${prompt}</li>`).join('')}
       </ol>
@@ -241,36 +260,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     checkResults();
-  }
-
-  function displayResults(data) {
-    const resultDiv = document.getElementById('result');
-    resultDiv.innerHTML = `
-      <h2>Results for ${data.domain}</h2>
-      <h3>Top 5 Keyword Prompts Analysis:</h3>
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>Prompt</th>
-            <th>Response</th>
-            <th>Score</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.topPromptsResults.map(result => `
-            <tr>
-              <td>${result.prompt}</td>
-              <td>${result.response}</td>
-              <td>${result.score}/10</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      <h3>All Keyword Prompts:</h3>
-      <ol>
-        ${data.keywordPrompts.map(prompt => `<li>${prompt}</li>`).join('')}
-      </ol>
-    `;
   }
 
   // Update fetchDomainHistory function
