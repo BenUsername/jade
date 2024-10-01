@@ -11,8 +11,11 @@
   "dependencies": {
     "express": "^4.21.0",
     "openai": "^4.0.0",
-    "node-fetch": "^2.7.0"
-    // ... other necessary dependencies
+    "node-fetch": "^2.7.0",
+    "mongoose": "^8.6.3",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "parcel": "^2.12.0"
