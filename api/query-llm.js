@@ -14,7 +14,7 @@ function isValidDomain(domain) {
 async function fetchWebContent(domain) {
   try {
     const response = await axios.get(`https://${domain}`, { timeout: 5000 });
-    return response.data.substring(0, 6000);
+    return response.data.substring(0, 1000);
   } catch (error) {
     throw new Error(`Error fetching content for ${domain}: ${error.message}`);
   }
@@ -24,7 +24,7 @@ async function generateKeywordPrompts(domain, webContent) {
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
-      { role: "system", content: "You are an SEO expert. Generate 10 keyword phrases (2-5 words each) that this website should rank for, based on its content." },
+      { role: "system", content: "You are an SEO expert. Generate 5 keyword phrases (2-5 words each) that this website should rank for, based on its content." },
       { role: "user", content: `Website: ${domain}\n\nContent: ${webContent}` }
     ],
     max_tokens: 20,
@@ -35,7 +35,7 @@ async function generateKeywordPrompts(domain, webContent) {
 }
 
 async function queryTopPrompts(domain, prompts) {
-  const topPrompts = prompts.slice(0, 5);
+  const topPrompts = prompts.slice(0, 3);
   const results = await Promise.all(topPrompts.map(async (prompt) => {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
