@@ -102,15 +102,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (loginForm) {
     loginForm.addEventListener('submit', async function (e) {
-      console.log('Login form submit event triggered');
       e.preventDefault();
-
-      document.getElementById('loading').style.display = 'block';
-
       const username = document.getElementById('login-username').value.trim();
       const password = document.getElementById('login-password').value.trim();
-
-      console.log('Username retrieved:', username);
 
       try {
         const response = await fetch('/api/login', {
@@ -119,25 +113,15 @@ document.addEventListener('DOMContentLoaded', () => {
           body: JSON.stringify({ username, password }),
         });
 
-        const data = await response.json();
-        console.log('Login response received:', data);
-
-        if (response.ok) {
-          toastr.success('Login successful!');
-          authToken = data.token;
-          localStorage.setItem('authToken', data.token);
-          updateUIForLoggedInUser();
-        } else {
-          toastr.error(`Error: ${data.error}`);
-          console.log('Login error:', data.error);
-          console.log('Response status:', response.status);
-          console.log('Response headers:', response.headers);
+        if (!response.ok) {
+          throw new Error('Login failed');
         }
+
+        const data = await response.json();
+        // Handle successful login (e.g., store token, update UI)
       } catch (error) {
-        console.error('Error during login:', error);
-        toastr.error('An unexpected error occurred during login.');
-      } finally {
-        document.getElementById('loading').style.display = 'none';
+        console.error('Login error:', error);
+        // Handle login error (e.g., show error message to user)
       }
     });
   } else {
