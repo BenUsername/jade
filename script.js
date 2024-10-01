@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const password = document.getElementById('login-password').value.trim();
 
       try {
-        const response = await fetch('/api/login', {
+        const response = await fetch('/api/auth/login', {  // Updated URL
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password }),
@@ -119,9 +119,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const data = await response.json();
         // Handle successful login (e.g., store token, update UI)
+        console.log('Login successful:', data);
+        authToken = data.token;
+        localStorage.setItem('authToken', data.token);
+        updateUIForLoggedInUser();
       } catch (error) {
         console.error('Login error:', error);
         // Handle login error (e.g., show error message to user)
+        toastr.error('Login failed. Please check your credentials and try again.');
       }
     });
   } else {
