@@ -103,7 +103,7 @@ async function scoreResponse(domain, response) {
   return isNaN(score) ? 0 : score;
 }
 
-export default authenticate(async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -129,7 +129,7 @@ export default authenticate(async function handler(req, res) {
     console.error('Error processing request:', error);
     res.status(500).json({ error: 'Failed to fetch content', details: error.message });
   }
-});
+};
 
 async function analyzeContent(domain, webContent, userId) {
   const keywordPrompts = await generateKeywordPrompts(domain, webContent);

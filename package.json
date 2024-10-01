@@ -3,10 +3,7 @@
   "version": "1.0.0",
   "main": "script.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "start": "node extension-server.js"
   },
   "keywords": [],
   "author": "",
@@ -24,14 +21,10 @@
     "jsdom": "^25.0.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.6.3",
-    "next-auth": "^4.24.8",
     "node-fetch": "^2.7.0",
     "openai": "^4.0.0",
     "puppeteer": "^23.4.1",
-    "validator": "^13.12.0",
-    "next": "^12.0.0",
-    "react": "^17.0.0",
-    "react-dom": "^17.0.0"
+    "validator": "^13.12.0"
   },
   "devDependencies": {
     "parcel": "^2.12.0"

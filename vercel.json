@@ -1,13 +1,10 @@
 {
-    "functions": {
-      "api/query-llm.js": {
-        "maxDuration": 60
-      }
-    },
+    "version": 2,
+    "builds": [
+        { "src": "extension-server.js", "use": "@vercel/node" }
+    ],
     "routes": [
-      {
-        "src": "/api/(.*)",
-        "dest": "/api/$1"
-      }
+        { "src": "/api/(.*)", "dest": "/extension-server.js" },
+        { "src": "/(.*)", "dest": "/index.html" }
     ]
-  }
+}
