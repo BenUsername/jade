@@ -27,7 +27,7 @@ async function generateKeywordPrompts(domain, webContent) {
       { role: "system", content: "You are an SEO expert. Generate 10 keyword phrases (2-5 words each) that this website should rank for, based on its content." },
       { role: "user", content: `Website: ${domain}\n\nContent: ${webContent}` }
     ],
-    max_tokens: 50,
+    max_tokens: 51,
     temperature: 0,
   });
 
